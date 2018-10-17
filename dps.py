@@ -124,20 +124,20 @@ class Fight(object):
         self._melee = Damage()
         self._cripp = Damage()
         self._crit = Damage()
+        self._backstab = Damage()
 
     def melee(self, time, verb, damage):
         self.end = time
         self._melee.hit(damage)
         
     def crit(self, time, verb, damage):
-        #self._melee(time, verb, damage)
-        self.end = time
         self._crit.hit(damage)
 
     def cripp(self, time, verb, damage):
-        #self._melee(time, verb, damage)
-        self.end = time
         self._cripp.hit(damage)
+
+    def backstab(self, time, verb, damage):
+        self._backstab.hit(damage)
 
     @property
     def seconds(self):
@@ -205,8 +205,10 @@ class Battle(object):
         elif damage == self._crits[attacker]:
             self._melee[attacker][target].crit(time, verb, damage)
             self._crits[attacker] = 0
-        else:
-            self._melee[attacker][target].melee(time, verb, damage)
+        elif verb == 'backstabs':
+            self._melee[attacker][target].backstab(time, verb, damage)
+
+        self._melee[attacker][target].melee(time, verb, damage)
 
     def cripp(self, attacker, damage):
         self._cripps[attacker] = damage
@@ -255,13 +257,15 @@ class Battle(object):
                     print(fight_format.format('', '+critical hits', 0, fight._crit.hits, 0, fight._crit.damage, fight._crit.damage / fight._crit.hits, fight._crit.damage / fight.seconds))
                 if fight._cripp.hits > 0:
                     print(fight_format.format('', '+crippling blows', 0, fight._cripp.hits, 0, fight._cripp.damage, fight._cripp.damage / fight._cripp.hits, fight._cripp.damage / fight.seconds))
+                if fight._backstab.hits > 0:
+                    print(fight_format.format('', '+backstabs', 0, fight._backstab.hits, 0, fight._backstab.damage, fight._backstab.damage / fight._backstab.hits, fight._backstab.damage / fight.seconds))
 
                 attacker = ''
             if total_fights > 1:
-                total_hps = total_hits / total_seconds
+                total_hps = total_hits / self.seconds
                 total_dpa = total_damage / total_hits
-                total_dps = total_damage / total_seconds
-                print(fight_format.format('', 'Total', total_seconds, total_hits, total_hps, total_damage, total_dpa, total_dps))
+                total_dps = total_damage / self.seconds
+                print(fight_format.format('', '+Total', self.seconds, total_hits, total_hps, total_damage, total_dpa, total_dps))
             print(break_str)
         print()
         print('Deaths:')
@@ -282,42 +286,12 @@ class Process(object):
         self.pc_list = pc_list
         self.you = you
         self.since = since
-        '''
-        self.pc_list = [
-            'You',
-            'Mars',
-            'Rhanxette',
-            'Boomba',
-            'Chelsea',
-            'Gatito',
-            'Hercules',
-            'Illeatyo',
-            'Jaxxys',
-            'Jibarn',
-            'Jonartik',
-            'Khaurgar',
-            'Khaurgar`s warder',
-            'Lonarab',
-            'Mael',
-            'Mael`s warder',
-            'Mars',
-            'Notes',
-            'Rhanxette',
-            'Shackles',
-            'Tripsy',
-            'Vobn',
-            'Xabober',
-            'You',
-            'Yudo',
-            'Dain Frostreaver IV',
-        ]
-        '''
         self.pc_regexp = '|'.join(self.pc_list)
         self.melee_verbs = "hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs"
-        self.melee_reg = re.compile(fr'^({self.pc_regexp}) ({self.melee_verbs}) (.*) for ([0-9]+) points of damage\.')
+        self.melee_reg = re.compile(fr'^({self.pc_regexp}) ({self.melee_verbs}) ({self.pc_regexp}) for ([0-9]+) points of damage\.')
         self.cripp_re = re.compile(fr'^({self.pc_regexp}) lands a Crippling Blow\!\(([0-9]+)\)')
         self.crit_re = re.compile(fr'^({self.pc_regexp}) Scores a critical hit\!\(([0-9]+)\)')
-        self.magic_re = re.compile(fr'(.*) was (hit by non-melee) for ([0-9]+) points of damage\.')
+        self.magic_re = re.compile(fr'({self.pc_regexp}) was (hit by non-melee) for ([0-9]+) points of damage\.')
         self.death_re1 = re.compile(fr'({self.pc_regexp}) have slain ({self.pc_regexp})!')
         self.death_re2 = re.compile(fr'({self.pc_regexp}) (has|have) been slain by ({self.pc_regexp})!')
         self.death_re3 = re.compile(fr'({self.pc_regexp}) died\.')
@@ -340,6 +314,17 @@ class Process(object):
             return
 
         msg = line[27:-1]
+
+        # End the battle
+        if self.battle:
+            end_the_battle = False
+            if msg == 'LOADING, PLEASE WAIT...':
+                end_the_battle = True
+            if time > self.battle.expire:
+                end_the_battle = True
+            if end_the_battle:
+                self.battle.report(time)
+                self.battle = None
 
         magic = self.magic_re.search(msg)
         if magic:
@@ -409,27 +394,20 @@ class Process(object):
             self.battle.death(target)
             return
 
-        # End the battle
-        if self.battle:
-            end_the_battle = False
-            if msg == 'LOADING, PLEASE WAIT...':
-                end_the_battle = True
-            if time > self.battle.expire:
-                end_the_battle = True
-            if end_the_battle:
-                self.battle.report(time)
-                self.battle = None
-
 argp = Argp(description='Process TAKP logs')
 
 argp.add_argument('--me', '-m', help='Who is "You" in the logs', default='Me')
-argp.add_argument('--pc', '-p', action='append', help='Filter to specific (Non-)Player Characters to search for in the logs', default=['[A-Za-z `]+'])
+argp.add_argument('--pc', '-p', action='append', help='Filter to specific (Non-)Player Characters to search for in the logs')
 argp.add_argument('--log', '-l', help='Logfile to watch')
 argp.add_argument('--history', help='Read the whole log history', action='store_true')
 argp.add_argument('--follow', '-f', help='Follow the log file', action='store_true')
 argp.add_argument('--since', '-s', help='Parse logs since', default='Thu Jan 01 00:00:00 1970')
 
 args = argp.parse_args()
+if args.pc:
+    pc_list = args.pc + ['[Yy][Oo][Uu]']
+else:
+    pc_list = ['[A-Za-z `]+']
 since = None
 today = date.today()
 with suppress(ValueError):
@@ -449,7 +427,7 @@ with suppress(ValueError):
 if not since:
     raise Exception(f'Unable to parse date string [{args.since}]')
 
-process = Process(pc_list = args.pc, you = args.me, since=args.since)
+process = Process(pc_list = pc_list, you = args.me, since=args.since)
 if args.history:
     with open(args.log, "r") as fd:
         for line in fd.readlines():
