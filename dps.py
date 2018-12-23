@@ -174,15 +174,17 @@ class Fight(object):
 
 
 class Battle(object):
-    def __init__(self, time):
+    def __init__(self, time, keep_alive):
         self._melee = defaultdict(dict)
         self._deaths = defaultdict(dict)
         self._cripps = defaultdict(int)
         self._crits = defaultdict(int)
         self.start = time
+        self._keep_alive = keep_alive
         self.keep_alive(self.start)
 
-    def keep_alive(self, time, bump = timedelta(seconds=10)):
+    def keep_alive(self, time, bump = 10):
+        bump = timedelta(seconds=max(bump, self._keep_alive))
         self.end = time
         self.expire = self.end + bump
 
@@ -218,6 +220,7 @@ class Battle(object):
 
     def magic(self, time, target, verb, damage):
         self.melee(time, f'Spell/DS({damage})', target, verb, damage)
+        self.melee(time, f'Spell/DS(total)', target, verb, damage)
 
     @property
     def seconds(self):
@@ -279,7 +282,7 @@ class Battle(object):
 
 
 class Process(object):
-    def __init__(self, pc_list, you, since):
+    def __init__(self, pc_list, you, since, keep_alive):
         self.battle = None
         self.attacker = ''
         self.target = ''
@@ -287,7 +290,7 @@ class Process(object):
         self.you = you
         self.since = since
         self.pc_regexp = '|'.join(self.pc_list)
-        self.melee_verbs = "hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs"
+        self.melee_verbs = "smash|smashes|hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs"
         self.melee_reg = re.compile(fr'^({self.pc_regexp}) ({self.melee_verbs}) ({self.pc_regexp}) for ([0-9]+) points of damage\.')
         self.cripp_re = re.compile(fr'^({self.pc_regexp}) lands a Crippling Blow\!\(([0-9]+)\)')
         self.crit_re = re.compile(fr'^({self.pc_regexp}) Scores a critical hit\!\(([0-9]+)\)')
@@ -295,6 +298,8 @@ class Process(object):
         self.death_re1 = re.compile(fr'({self.pc_regexp}) have slain ({self.pc_regexp})!')
         self.death_re2 = re.compile(fr'({self.pc_regexp}) (has|have) been slain by ({self.pc_regexp})!')
         self.death_re3 = re.compile(fr'({self.pc_regexp}) died\.')
+        self.heal_re = re.compile(f'(You) have been (healed) for ([0-9]+) points of damage\.')
+        self.keep_alive = keep_alive
 
     def __call__(self, line):
         '''
@@ -318,8 +323,8 @@ class Process(object):
         # End the battle
         if self.battle:
             end_the_battle = False
-            if msg == 'LOADING, PLEASE WAIT...':
-                end_the_battle = True
+            #if msg == 'LOADING, PLEASE WAIT...':
+                #end_the_battle = True
             if time > self.battle.expire:
                 end_the_battle = True
             if end_the_battle:
@@ -329,7 +334,7 @@ class Process(object):
         magic = self.magic_re.search(msg)
         if magic:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             target, verb, damage = magic.group(1, 2, 3)
             self.battle.magic(time, target, verb, int(damage))
             return
@@ -337,7 +342,7 @@ class Process(object):
         melee = self.melee_reg.search(msg)
         if melee:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             attacker, verb, target, damage = melee.group(1, 2, 3, 4)
             if attacker == 'You':
                 attacker = self.you
@@ -349,21 +354,30 @@ class Process(object):
         cripp = self.cripp_re.search(msg)
         if cripp:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             attacker, damage = cripp.group(1, 2)
             self.battle.cripp(attacker, int(damage))
 
         crit = self.crit_re.search(msg)
         if crit:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             attacker, damage = crit.group(1, 2)
             self.battle.crit(attacker, int(damage))
+
+        heal = self.heal_re.search(msg)
+        if heal:
+            if not self.battle:
+                self.battle = Battle(time, self.keep_alive)
+            target, verb, damage = heal.group(1, 2, 3)
+            if target == 'You':
+                target = self.you
+            self.battle.melee(time, 'Heals', target, verb, int(damage))
 
         death = self.death_re1.search(msg)
         if death:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             slayer, target = death.group(1, 2)
             if slayer == 'You':
                 slayer = self.you
@@ -375,7 +389,7 @@ class Process(object):
         death = self.death_re2.search(msg)
         if death:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             target, slayer = death.group(1, 3)
             if slayer == 'You':
                 slayer = self.you
@@ -387,7 +401,7 @@ class Process(object):
         death = self.death_re3.search(msg)
         if death:
             if not self.battle:
-                self.battle = Battle(time)
+                self.battle = Battle(time, self.keep_alive)
             target = death.group(1)
             if target == 'You':
                 target = self.you
@@ -402,6 +416,7 @@ argp.add_argument('--log', '-l', help='Logfile to watch')
 argp.add_argument('--history', help='Read the whole log history', action='store_true')
 argp.add_argument('--follow', '-f', help='Follow the log file', action='store_true')
 argp.add_argument('--since', '-s', help='Parse logs since', default='Thu Jan 01 00:00:00 1970')
+argp.add_argument('--keep-alive', '-k', help='Keep alive seconds for each Battle', default=10)
 
 args = argp.parse_args()
 if args.pc:
@@ -427,7 +442,7 @@ with suppress(ValueError):
 if not since:
     raise Exception(f'Unable to parse date string [{args.since}]')
 
-process = Process(pc_list = pc_list, you = args.me, since=args.since)
+process = Process(pc_list = pc_list, you = args.me, since=args.since, keep_alive = int(args.keep_alive))
 if args.history:
     with open(args.log, "r") as fd:
         for line in fd.readlines():
