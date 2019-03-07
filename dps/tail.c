@@ -51,13 +51,18 @@ void tail(const char* filename, tailfn callback)
             printf("Waiting for more data to read.\n");
             sleep(1);
         }
-        ssize_t last = 0;
-        for (ssize_t here = last; here < readSize; here++)
+        size_t last = 0;
+        for (size_t here = last; here < readSize; here++)
         {
+            if (line[here] == '\r')
+            {
+                line[here] = '\0';
+                here++;
+            }
             if (line[here] == '\n')
             {
                 line[here] = '\0';
-                callback(&line[last]);
+                callback(&line[last], here - last - 1);
                 last = here + 1;
             }
         }
