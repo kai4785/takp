@@ -1,9 +1,11 @@
 #ifndef TAIL_H
 #define TAIL_H
 
+#include "utility.h"
+
 #include <stddef.h>
 
-typedef void (*tailfn)(const char* line, size_t length);
+typedef void (*tailfn)(struct String line);
 
 void tail(const char* filename, tailfn callback);
 

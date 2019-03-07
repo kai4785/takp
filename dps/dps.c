@@ -1,3 +1,4 @@
+#include "action.h"
 #include "tail.h"
 #include "config.h"
 #include "date.h"
@@ -15,44 +16,51 @@
     config.keepalive = 10;
 }
 
-void tellme(const char* line, size_t length)
+void tellme(struct String line)
 {
+    static int64_t lineno = 0;
+    lineno++;
     // empty line
-    if(length == 0)
+    if(line.length == 0)
         return;
     char datestring[25] = {0};
-    const char* message = NULL;
-    static ssize_t lineno = 0;
+    struct String message = {0};
     int64_t dateseconds = 0;
-    if(length < 27 || !(line[0] == '[' && line[25] == ']'))
+
+    if(line.length < 27 || !(line.data[0] == '[' && line.data[25] == ']'))
     {
-        fprintf(stderr, "[%zd] No date in message(%zu): (%02x %02x) [|%s|]\n", ++lineno, length, line[0], line[25], line);
+        fprintf(stderr, "[%ld] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
         return;
     }
-    strncpy(datestring, &line[1], 24);
-    message = &line[27];
+    strncpy(datestring, &line.data[1], 24);
+    message.data = &line.data[27];
+    message.length = line.length - 27;
     dateseconds = parseDate(datestring);
-    length -= 27;
-    printf("[%zd]:[%ld] %s (%zu | %zu)\n", ++lineno, dateseconds, message, length, strnlen(message, 100));
-    /* Messages are one of the following.
-     * End of Battle
-          LOADING, PLEASE WAIT...
-     * Melee Damage
-     *    Verbs "smash|smashes|hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs"
-     *    ^([A-Za-z `]+) ([A-Za-z `]+) ([A-Za-z `]+) for ([0-9]+) points of damage\.
-     * Magic Damage
-     *    ([A-Za-z `]+) was (hit by non-melee) for ([0-9]+) points of damage\.
-     * Cripple Damage (duplicate of Melee)
-     *    ^([A-Za-z `]+) lands a Crippling Blow\!\(([0-9]+)\)
-     * Critical Damage (duplicate of Melee/Magic)
-     *    ^([A-Za-z `]+) Scores a critical hit\!\(([0-9]+)\)
-     * Heal Damage
-     *    (You) have been (healed) for ([0-9]+) points of damage\.
-     * Death
-     *    ([A-Za-z `]+) have slain ([A-Za-z `]+)!
-     *    ([A-Za-z `]+) (has|have) been slain by ([A-Za-z `]+)!
-     *    ([A-Za-z `]+) died\.
-     */
+    struct Action action = parseAction(message);
+    switch(action.type)
+    {
+        case CHAT:
+        {
+            fprintf(stderr, "%s\n", message.data);
+            break;
+        }
+        case MELEE:
+        {
+            printf("Melee: %s |", action.message);
+            printf(" [%.*s]", (int)action.attacker.length, action.attacker.data);
+            printf(" [%.*s]", (int)action.verb.length, action.verb.data);
+            printf(" [%.*s]", (int)action.target.length, action.target.data);
+            printf(" [%.*s]", (int)action.damage.length, action.damage.data);
+            //printf(" for %ld", action.damage);
+            printf("\n");
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message);
+            break;
+        }
+    }
 }
 
 int main(int argc, char **argv)

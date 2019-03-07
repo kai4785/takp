@@ -4,6 +4,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(dps
+    action.c
+    action.h
     dps.c
     config.c
     config.h
@@ -11,4 +13,6 @@ add_executable(dps
     date.h
     tail.c
     tail.h
+    utility.c
+    utility.h
 )

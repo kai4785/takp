@@ -62,7 +62,11 @@ void tail(const char* filename, tailfn callback)
             if (line[here] == '\n')
             {
                 line[here] = '\0';
-                callback(&line[last], here - last - 1);
+                struct String string = {
+                    .data = &line[last],
+                    .length = here - last - 1,
+                };
+                callback(string);
                 last = here + 1;
             }
         }
