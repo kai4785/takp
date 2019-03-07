@@ -1,4 +1,5 @@
 #include "tail.h"
+#include "config.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -25,7 +26,7 @@ void tail(const char* filename, tailfn callback)
         fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
         return;
     }
-    size_t pos = 0; //fdSize(fd);
+    size_t pos = config.history ? 0 : fdSize(fd);
     if(pos < 0)
     {
         fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
@@ -45,6 +46,8 @@ void tail(const char* filename, tailfn callback)
         ssize_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)
         {
+            if(!config.follow)
+                return;
             printf("Waiting for more data to read.\n");
             sleep(1);
         }
