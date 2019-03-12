@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #define MINUTE (60LL)
 #define HOUR (60*MINUTE)
@@ -22,63 +23,104 @@
 #define DEC (NOV+(DAY*30))
 #define YEAR (DEC+(DAY*31))
 
+// If EQ lasts more than 100 years, we'll need to update this code
+static const int leapYears[] = {
+    2000, 2004, 2008, 2012, 2016, 2020, 2024,
+    2028, 2032, 2036, 2040, 2044, 2048, 2052,
+    2056, 2060, 2064, 2068, 2072, 2076, 2080,
+    2084, 2088, 2092, 2096
+};
+
+// How many leap years since 1999?
+// Does not count current year, since it's dependent on the date
+static inline int leapYearsSince1999(int64_t year)
+{
+    int count = 0;
+    for(int i = 0; i < (sizeof(leapYears) / sizeof(*leapYears)); i++)
+    {
+        if(year - 1 < leapYears[i])
+            break;
+        count++;
+    }
+    return count;
+}
+
+// Are we in a leap year?
 static inline bool isLeapYear(int64_t year)
 {
-    // If this proves to be slow, just create an array of leap-years since 1999.
-    return (((year % 4 == 0) && (year % 100 !=0)) || (year % 400 == 0));
+    bool found = 0;
+    for(int i = 0; i < (sizeof(leapYears) / sizeof(*leapYears)); i++)
+    {
+        if(year == leapYears[i])
+        {
+            found = 1;
+            break;
+        }
+    }
+    return found;
 }
 
 // Just parse one date string
 // Wed Mar 06 22:09:37 2019
 // 0   4   8  11:14:17 20
 // Returns "seconds since 'Jan 01 00:00:00 0000'"
-int64_t parseDate(const char* datestring)
+// Returns "seconds since 'Tue Mar 16 00:00:00 1999'", Everquest's Release date
+const int64_t EQDate = 63046857600;
+int64_t parseDate(const struct String datestring)
 {
+    if(datestring.length != 24)
+    {
+        return -1;
+        errno = EINVAL;
+    }
     int64_t seconds = 0;
     // Month
     // If this proves to be slow, parse each char one at a time.
-    if(strncmp("Jan", &datestring[4], 3) == 0)
+    if(strncmp("Jan", &datestring.data[4], 3) == 0)
         seconds += JAN;
-    else if(strncmp("Feb", &datestring[4], 3) == 0)
+    else if(strncmp("Feb", &datestring.data[4], 3) == 0)
         seconds += FEB;
-    else if(strncmp("Mar", &datestring[4], 3) == 0)
+    else if(strncmp("Mar", &datestring.data[4], 3) == 0)
         seconds += MAR;
-    else if(strncmp("Apr", &datestring[4], 3) == 0)
+    else if(strncmp("Apr", &datestring.data[4], 3) == 0)
         seconds += APR;
-    else if(strncmp("May", &datestring[4], 3) == 0)
+    else if(strncmp("May", &datestring.data[4], 3) == 0)
         seconds += MAY;
-    else if(strncmp("Jun", &datestring[4], 3) == 0)
+    else if(strncmp("Jun", &datestring.data[4], 3) == 0)
         seconds += JUN;
-    else if(strncmp("Jul", &datestring[4], 3) == 0)
+    else if(strncmp("Jul", &datestring.data[4], 3) == 0)
         seconds += JUL;
-    else if(strncmp("Aug", &datestring[4], 3) == 0)
+    else if(strncmp("Aug", &datestring.data[4], 3) == 0)
         seconds += AUG;
-    else if(strncmp("Sep", &datestring[4], 3) == 0)
+    else if(strncmp("Sep", &datestring.data[4], 3) == 0)
         seconds += SEP;
-    else if(strncmp("Oct", &datestring[4], 3) == 0)
+    else if(strncmp("Oct", &datestring.data[4], 3) == 0)
         seconds += OCT;
-    else if(strncmp("Nov", &datestring[4], 3) == 0)
+    else if(strncmp("Nov", &datestring.data[4], 3) == 0)
         seconds += NOV;
-    else if(strncmp("Dec", &datestring[4], 3) == 0)
+    else if(strncmp("Dec", &datestring.data[4], 3) == 0)
         seconds += DEC;
     // Day
-    seconds += (datestring[8] - '0') * DAY * 10;
-    seconds += (datestring[9] - '0') * DAY;
+    seconds += (datestring.data[8] - '0') * DAY * 10;
+    seconds += (datestring.data[9] - '0') * DAY;
+    seconds -= DAY; // Days are 1 based, so subtract a day to make it 0 based
     // Hour
-    seconds += (datestring[11] - '0') * HOUR * 10;
-    seconds += (datestring[12] - '0') * HOUR;
+    seconds += (datestring.data[11] - '0') * HOUR * 10;
+    seconds += (datestring.data[12] - '0') * HOUR;
     // Minute
-    seconds += (datestring[14] - '0') * MINUTE * 10;
-    seconds += (datestring[15] - '0') * MINUTE;
+    seconds += (datestring.data[14] - '0') * MINUTE * 10;
+    seconds += (datestring.data[15] - '0') * MINUTE;
     // Second
-    seconds += (datestring[17] - '0') * 10;
-    seconds += (datestring[18] - '0');
+    seconds += (datestring.data[17] - '0') * 10;
+    seconds += (datestring.data[18] - '0');
     // Year
     int64_t year = 0;
-    year += (datestring[20] - '0') * 1000;
-    year += (datestring[21] - '0') * 100;
-    year += (datestring[22] - '0') * 10;
-    year += (datestring[23] - '0');
+    year += (datestring.data[20] - '0') * 1000;
+    year += (datestring.data[21] - '0') * 100;
+    year += (datestring.data[22] - '0') * 10;
+    year += (datestring.data[23] - '0');
+    // Leap years
+    seconds += DAY * leapYearsSince1999(year);
     // If it's after February, but it's a leap year, add a day.
     // Feb 29 will handle itself.
     if(seconds >= MAR && isLeapYear(year))
@@ -87,5 +129,5 @@ int64_t parseDate(const char* datestring)
     }
 
     seconds += year * YEAR;
-    return seconds;
+    return seconds - EQDate;
 }

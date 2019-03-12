@@ -1,11 +1,13 @@
 #include "action.h"
-#include "tail.h"
+#include "battle.h"
 #include "config.h"
 #include "date.h"
+#include "tail.h"
 
 #include <string.h>
 #include <stdio.h>
 
+// TODO: Really?
  __attribute((constructor)) void configInstance(void)
 {
     config.follow = false;
@@ -14,6 +16,7 @@
     config.logfile = NULL;
     config.since = 0;
     config.keepalive = 10;
+    config.verbose = 0;
 }
 
 void tellme(struct String line)
@@ -23,7 +26,7 @@ void tellme(struct String line)
     // empty line
     if(line.length == 0)
         return;
-    char datestring[25] = {0};
+    struct String datestring = {0};
     struct String message = {0};
     int64_t dateseconds = 0;
 
@@ -32,7 +35,8 @@ void tellme(struct String line)
         fprintf(stderr, "[%ld] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
         return;
     }
-    strncpy(datestring, &line.data[1], 24);
+    datestring.data = line.data + 1;
+    datestring.length = 24;
     message.data = &line.data[27];
     message.length = line.length - 27;
     dateseconds = parseDate(datestring);
@@ -57,6 +61,7 @@ void tellme(struct String line)
             printf("|%.*s", (int)action.target.length, action.target.data);
             printf("|%ld", action.damage);
             printf("\n");
+            battle.totalDamage += action.damage;
             break;
         }
         case MAGIC:
@@ -67,6 +72,7 @@ void tellme(struct String line)
             printf("|%.*s", (int)action.verb.length, action.verb.data);
             printf("|%ld", action.damage);
             printf("\n");
+            battle.totalDamage += action.damage;
             break;
         }
         case HEAL:
@@ -77,11 +83,13 @@ void tellme(struct String line)
             printf("|%.*s", (int)action.verb.length, action.verb.data);
             printf("|%ld", action.damage);
             printf("\n");
+            battle.totalHeals += action.damage;
             break;
         }
         default:
         {
-            fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message.data);
+            if(config.verbose)
+                fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message.data);
             break;
         }
     }
@@ -91,8 +99,13 @@ int main(int argc, char **argv)
 {
     if(argc > 2)
     {
-        config.since = parseDate(argv[2]);
+        struct String datestring = {
+            .data = argv[2],
+            .length = strlen(argv[2])
+        };
+        config.since = parseDate(datestring);
     }
     tail(argv[1], tellme);
+    reportBattle();
     return 0;
 }

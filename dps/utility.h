@@ -19,6 +19,7 @@ struct Words
     size_t length;
 };
 
+bool equalsTo(const struct String string, const struct String end);
 bool startsWith(const struct String string, const struct String end);
 bool endsWith(const struct String string, const struct String end);
 int64_t toInt(const struct String string);

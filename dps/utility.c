@@ -3,27 +3,25 @@
 #include <string.h>
 #include <stdlib.h>
 
-bool startsWith(const struct String string, struct String starts)
+bool equalsTo(const struct String lhs, struct String rhs)
 {
-    if(string.length < starts.length)
+    if(lhs.length != rhs.length)
         return false;
-#if 1
-    for(size_t i = 0; i < starts.length; i++)
-    {
-        if(string.data[i] != starts.data[i])
-            return false;
-    }
-    return true;
-#else
-    return (strncmp(string.data, starts.data, starts.length) == 0);
-#endif
+    return (strncmp(lhs.data, rhs.data, rhs.length) == 0);
 }
 
-bool endsWith(const struct String string, struct String end)
+bool startsWith(const struct String lhs, struct String rhs)
 {
-    if(string.length < end.length)
+    if(lhs.length < rhs.length)
         return false;
-    return (strncmp(string.data + string.length - end.length, end.data, end.length) == 0);
+    return (strncmp(lhs.data, rhs.data, rhs.length) == 0);
+}
+
+bool endsWith(const struct String lhs, struct String rhs)
+{
+    if(lhs.length < rhs.length)
+        return false;
+    return (strncmp(lhs.data + lhs.length - rhs.length, rhs.data, rhs.length) == 0);
 }
 
 int64_t toInt(const struct String string)

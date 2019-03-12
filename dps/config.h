@@ -8,6 +8,7 @@ struct Config
 {
     bool follow;
     bool history;
+    bool verbose;
     const char* me;
     const char* logfile;
     uint64_t since;

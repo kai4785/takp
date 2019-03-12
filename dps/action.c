@@ -104,9 +104,9 @@ void splitVerb(struct String message, struct Action* action)
                     action->target.data = message.data;
                     action->target.length = i;
                     action->verb.data = message.data + i + 1;
-                    action->verb.length = 16;
+                    action->verb.length = healedVerb.length - 2; // No spaces
+                    i += healedVerb.length - 2;
                     state = Split2;
-                    i += healedVerb.length;
                 }
                 else
                 {
