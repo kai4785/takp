@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 struct Config
 {
@@ -9,7 +10,7 @@ struct Config
     bool history;
     const char* me;
     const char* logfile;
-    const char* since;
+    uint64_t since;
     int keepalive;
 };
 

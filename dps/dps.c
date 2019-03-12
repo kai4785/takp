@@ -12,7 +12,7 @@
     config.history = true;
     config.me = NULL;
     config.logfile = NULL;
-    config.since = NULL;
+    config.since = 0;
     config.keepalive = 10;
 }
 
@@ -36,6 +36,10 @@ void tellme(struct String line)
     message.data = &line.data[27];
     message.length = line.length - 27;
     dateseconds = parseDate(datestring);
+    if(dateseconds < config.since)
+    {
+        return;
+    }
     struct Action action = parseAction(message);
     switch(action.type)
     {
@@ -46,18 +50,38 @@ void tellme(struct String line)
         }
         case MELEE:
         {
-            printf("Melee: %s |", action.message);
-            printf(" [%.*s]", (int)action.attacker.length, action.attacker.data);
-            printf(" [%.*s]", (int)action.verb.length, action.verb.data);
-            printf(" [%.*s]", (int)action.target.length, action.target.data);
-            printf(" [%.*s]", (int)action.damage.length, action.damage.data);
-            //printf(" for %ld", action.damage);
+            printf("Melee: %s:\n", message.data);
+            printf("      ");
+            printf(" %.*s", (int)action.source.length, action.source.data);
+            printf("|%.*s", (int)action.verb.length, action.verb.data);
+            printf("|%.*s", (int)action.target.length, action.target.data);
+            printf("|%ld", action.damage);
+            printf("\n");
+            break;
+        }
+        case MAGIC:
+        {
+            printf("Magic: %s:\n", message.data);
+            printf("      ");
+            printf(" %.*s", (int)action.target.length, action.target.data);
+            printf("|%.*s", (int)action.verb.length, action.verb.data);
+            printf("|%ld", action.damage);
+            printf("\n");
+            break;
+        }
+        case HEAL:
+        {
+            printf("Heal : %s:\n", message.data);
+            printf("      ");
+            printf(" %.*s", (int)action.target.length, action.target.data);
+            printf("|%.*s", (int)action.verb.length, action.verb.data);
+            printf("|%ld", action.damage);
             printf("\n");
             break;
         }
         default:
         {
-            fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message);
+            fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message.data);
             break;
         }
     }
@@ -65,6 +89,10 @@ void tellme(struct String line)
 
 int main(int argc, char **argv)
 {
+    if(argc > 2)
+    {
+        config.since = parseDate(argv[2]);
+    }
     tail(argv[1], tellme);
     return 0;
 }
