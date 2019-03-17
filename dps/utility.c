@@ -1,13 +1,44 @@
 #include "utility.h"
+#include "array.h"
 
 #include <string.h>
 #include <stdlib.h>
 
-bool equalsTo(const struct String lhs, struct String rhs)
+// Member function declarations
+void String_hold      (struct String* this, char* data, size_t length);
+void String_dup       (struct String* this, char* data, size_t length);
+void String_copy      (struct String* this, struct String* that);
+bool String_startsWith(struct String* this, struct String* that);
+bool String_endsWith  (struct String* this, struct String* that);
+bool String_op_equal  (struct String* this, struct String* that);
+int64_t String_toInt  (struct String* this);
+void String_clear     (struct String* this);
+void String_dtor      (struct String* this);
+
+// Constructors
+void String_ctor(struct String* this)
 {
-    if(lhs.length != rhs.length)
-        return false;
-    return (strncmp(lhs.data, rhs.data, rhs.length) == 0);
+    *this = (struct String){
+        .data = NULL,
+        .length = 0,
+        .ownsPtr = false,
+        .hold = &String_hold,
+        .dup = &String_dup,
+        .copy = &String_copy,
+        .startsWith = &String_startsWith,
+        .endsWith = &String_endsWith,
+        .op_equal = &String_op_equal,
+        .toInt = &String_toInt,
+        .clear = &String_clear,
+        .dtor = &String_dtor,
+    };
+}
+
+void String_ctorHold(struct String* this, char* data, size_t length)
+{
+    String_ctor(this);
+    this->data = data;
+    this->length = length;
 }
 
 bool startsWith(const struct String lhs, struct String rhs)
@@ -36,46 +67,76 @@ int64_t toInt(const struct String string)
     return value;
 }
 
-struct Words split(struct String message)
+// Member function implementations
+void String_hold(struct String* this, char* data, size_t length)
 {
-    struct Words words = {0};
-    for(size_t i = 0; i < message.length; i++)
-    {
-        if(message.data[i] == ' ')
-            words.length++;
-    }
-    words.length++;
-
-    size_t allocSize = sizeof(struct String) * words.length;
-    words.data = malloc(allocSize);
-    memset(words.data, '\0', allocSize);
-    size_t start = 0, end = 0, j = 0;
-    for(size_t i = 0; i < message.length; i++)
-    {
-        if(message.data[i] == ' ')
-        {
-            words.data[j].data = strndup(&message.data[start], i - start);
-            j++;
-            end = i;
-            start = i+1;
-        }
-        if(i + 1 == message.length)
-        {
-            words.data[j].data = strndup(&message.data[start], i - start + 1);
-        }
-    }
-    return words;
+    this->clear(this);
+    this->data = data;
+    this->length = length;
+    this->ownsPtr = false;
 }
 
-void freeWords(struct Words* words)
+void String_dup(struct String* this, char* data, size_t length)
 {
-    if(!words)
-        return;
-    for(size_t i = 0; i < words->length; i++)
+    this->clear(this);
+    this->data = strndup(data, length);
+    this->length = length;
+    this->ownsPtr = true;
+}
+
+void String_copy(struct String* this, struct String* that)
+{
+    this->clear(this);
+    this->data = strndup(that->data, that->length);
+    this->length = that->length;
+    this->ownsPtr = true;
+}
+
+bool String_startsWith(struct String* this, struct String* that)
+{
+    if(this->length < that->length)
+        return false;
+    return (strncmp(this->data, that->data, that->length) == 0);
+}
+
+bool String_endsWith(struct String* this, struct String* that)
+{
+    if(this->length < that->length)
+        return false;
+    return (strncmp(this->data + this->length - that->length, that->data, that->length) == 0);
+}
+
+bool String_op_equal(struct String* this, struct String* that)
+{
+    if(this->length != that->length)
+        return false;
+    return (strncmp(this->data, that->data, that->length) == 0);
+}
+
+int64_t String_toInt(struct String* this)
+{
+    int64_t value = 0;
+    int64_t base = 1;
+    for(ssize_t i = this->length - 1; i >= 0; i--)
     {
-        free(words->data[i].data);
+        value += (this->data[i] - '0') * base;
+        base *= 10;
     }
-    free(words->data);
-    words->data = NULL;
-    words->length = 0;
+    return value;
+}
+
+void String_clear(struct String* this)
+{
+    if(this->ownsPtr)
+    {
+        free(this->data);
+    }
+    this->data = NULL;
+    this->length = 0;
+    this->ownsPtr = false;
+}
+
+void String_dtor(struct String* this)
+{
+    this->clear(this);
 }

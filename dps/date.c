@@ -129,5 +129,6 @@ int64_t parseDate(const struct String datestring)
     }
 
     seconds += year * YEAR;
-    return seconds - EQDate;
+    seconds -= EQDate;
+    return seconds;
 }

@@ -19,6 +19,9 @@ enum ActionType
     ZONE
 };
 
+struct Action;
+void Action_ctor(struct Action* action);
+struct Action* Action_new();
 struct Action
 {
     enum ActionType type;
@@ -27,6 +30,8 @@ struct Action
     struct String verb;
     int64_t damage;
     const char* message;
+    void(*parse) (struct Action* this, struct String message);
+    void(*dtor) (struct Action* this);
 };
 
 struct Action parseAction(struct String message);

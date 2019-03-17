@@ -1,3 +1,4 @@
+#include "array.h"
 #include "action.h"
 #include "battle.h"
 #include "config.h"
@@ -15,8 +16,9 @@
     config.me = NULL;
     config.logfile = NULL;
     config.since = 0;
-    config.keepalive = 10;
-    config.verbose = 0;
+    config.keepAlive = 10;
+    config.verbosity = 0;
+    Battle_ctor(&battle);
 }
 
 #define dateEquals(_x, _y) _dateEquals(_x, _y, __FILE__, __LINE__)
@@ -59,44 +61,51 @@ int testDates()
 
 #define validateAction(_x) _validateAction(_x, __FILE__, __LINE__)
 
-int _validateAction(const struct Action action, const char* file, int line)
+int _validateAction(struct Action action, const char* file, int line)
 {
     int errors = 0;
     struct String actionMessage = CONST_STRING((char*)action.message);
-    struct Action newAction = parseAction(actionMessage);
-    if(!action.type == newAction.type)
+    struct Action newAction;
+    Action_ctor(&newAction);
+    newAction.parse(&newAction, actionMessage);
+    if(!(action.type == newAction.type))
     {
-        fprintf(stderr, "Action type mismatch: %d != %d\n", action.type, newAction.type);
+        fprintf(stderr, "[%s:%d]: Action type mismatch: %d != %d\n", file, line, action.type, newAction.type);
         errors++;
     }
-    if(!equalsTo(action.source, newAction.source))
+    if(!action.source.op_equal(&action.source, &newAction.source))
     {
-        fprintf(stderr, "Action source mismatch: %.*s != %.*s\n",
+        fprintf(stderr, "[%s:%d]: Action source mismatch: %.*s != %.*s\n",
+            file, line,
             (int)action.source.length, action.source.data,
             (int)newAction.source.length, newAction.source.data);
         errors++;
     }
-    if(!equalsTo(action.target, newAction.target))
+    if(!action.source.op_equal(&action.target, &newAction.target))
     {
-        fprintf(stderr, "Action target mismatch: %.*s != %.*s\n",
+        fprintf(stderr, "[%s:%d]: Action target mismatch: %.*s != %.*s\n",
+            file, line,
             (int)action.target.length, action.target.data,
             (int)newAction.target.length, newAction.target.data);
         errors++;
     }
-    if(!equalsTo(action.verb, newAction.verb))
+    if(!action.source.op_equal(&action.verb, &newAction.verb))
     {
-        fprintf(stderr, "Action verb mismatch: %.*s != %.*s\n",
+        fprintf(stderr, "[%s:%d]: Action verb mismatch: %.*s != %.*s\n",
+            file, line,
             (int)action.verb.length, action.verb.data,
             (int)newAction.verb.length, newAction.verb.data);
         errors++;
     }
     if(action.damage != newAction.damage)
     {
-        fprintf(stderr, "Action damage mismatch: %ld != %ld\n",
+        fprintf(stderr, "[%s:%d]: Action damage mismatch: %ld != %ld\n",
+            file, line,
             action.damage,
             newAction.damage);
         errors++;
     }
+    newAction.dtor(&newAction);
     return errors;
 }
 
@@ -105,47 +114,95 @@ int testActions()
     int errors = 0;
 
     struct Action action;
+    Action_ctor(&action);
 
-    action = (struct Action){
-        .type = HEAL,
-        .source = {0},
-        .target = CONST_STRING("You"),
-        .verb = CONST_STRING("have been healed"),
-        .damage = 2090,
-        .message = "You have been healed for 2090 points of damage."
-    };
+    action.type = HEAL;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have been healed");
+    action.damage = 2090;
+    action.message = "You have been healed for 2090 points of damage.";
     errors += validateAction(action);
 
-    action = (struct Action){
-        .type = MELEE,
-        .source = CONST_STRING("You"),
-        .target = CONST_STRING("a blizzard hunter"),
-        .verb = CONST_STRING("slash"),
-        .damage = 39,
-        .message = "You slash a blizzard hunter for 39 points of damage."
-    };
+    action.type = MELEE;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("a blizzard hunter");
+    action.verb = CONST_STRING("slash");
+    action.damage = 39;
+    action.message = "You slash a blizzard hunter for 39 points of damage.";
     errors += validateAction(action);
 
-    action = (struct Action){
-        .type = MELEE,
-        .source = {0},
-        .target = CONST_STRING("a blizzard hunter"),
-        .verb = CONST_STRING("non-melee"),
-        .damage = 8,
-        .message = "a blizzard hunter was hit by non-melee for 8 points of damage."
-    };
+    action.type = MAGIC;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("a blizzard hunter");
+    action.verb = CONST_STRING("non-melee");
+    action.damage = 8;
+    action.message = "a blizzard hunter was hit by non-melee for 8 points of damage.";
     errors += validateAction(action);
 
-    action = (struct Action){
-        .type = MELEE,
-        .source = CONST_STRING("Foo`s warder"),
-        .target = CONST_STRING("a giant lizard"),
-        .verb = CONST_STRING("slashes"),
-        .damage = 33,
-        .message = "Foo`s warder slashes a giant lizard for 33 points of damage."
-    };
+    action.type = MELEE;
+    action.source = CONST_STRING("Foo`s warder");
+    action.target = CONST_STRING("a giant lizard");
+    action.verb = CONST_STRING("slashes");
+    action.damage = 33;
+    action.message = "Foo`s warder slashes a giant lizard for 33 points of damage.";
     errors += validateAction(action);
 
+    action.dtor(&action);
+    return errors;
+}
+
+#define __test(_l, _r) \
+if((_l) != (_r)) { \
+    fprintf(stderr, "%s:%d: Comparison failed: (%lu == %lu)\n", __FILE__, __LINE__, (_l), (_r)); \
+    errors++; \
+}
+
+int testArray()
+{
+    int errors = 0;
+    {
+        struct Array array;
+        Array_ctor(&array, sizeof(int64_t));
+
+        array.resize(&array, 10);
+        __test(array.size, 0UL);
+        __test(array.capacity, 10UL);
+        __test(array.datumSize, sizeof(int64_t));
+        int64_t newValue = 0;
+        array.push(&array, &newValue);
+        newValue++;
+        array.push(&array, &newValue);
+        newValue++;
+        __test(array.size, 2UL);
+        __test(array.capacity, 10UL);
+        __test(*(int64_t*)array.at(&array, 0), 0UL);
+        __test(*(int64_t*)array.at(&array, 1), 1UL);
+        for(; newValue < 10; newValue++)
+        {
+            array.push(&array, &newValue);
+        }
+        __test(array.size, 10UL);
+        __test(array.capacity, 10UL);
+        __test(*(int64_t*)array.at(&array, 8), 8UL);
+        __test(*(int64_t*)array.at(&array, 9), 9UL);
+        array.push(&array, &newValue);
+        newValue++;
+        __test(array.size, 11UL);
+        __test(array.capacity, 20UL);
+        __test(*(int64_t*)array.at(&array, 10), 10UL);
+        for(; newValue < 1024; newValue++)
+        {
+            array.push(&array, &newValue);
+        }
+        __test(array.size, 1024UL);
+        __test(array.capacity, 1024UL);
+
+        array.resize(&array, 10);
+        __test(array.size, 10UL);
+        __test(array.capacity, 10UL);
+        array.dtor(&array);
+    }
     return errors;
 }
 
@@ -154,6 +211,7 @@ int main()
     int errors = 0;
     errors += testDates();
     errors += testActions();
+    errors += testArray();
     printf("Tests failed: %d\n", errors);
     return errors;
 }

@@ -8,11 +8,11 @@ struct Config
 {
     bool follow;
     bool history;
-    bool verbose;
+    int verbosity;
     const char* me;
     const char* logfile;
     uint64_t since;
-    int keepalive;
+    int keepAlive;
 };
 
 extern struct Config config;

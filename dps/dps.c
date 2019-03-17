@@ -15,8 +15,9 @@
     config.me = NULL;
     config.logfile = NULL;
     config.since = 0;
-    config.keepalive = 10;
-    config.verbose = 0;
+    config.keepAlive = 10;
+    config.verbosity = 0;
+    Battle_ctor(&battle);
 }
 
 void tellme(struct String line)
@@ -44,7 +45,16 @@ void tellme(struct String line)
     {
         return;
     }
-    struct Action action = parseAction(message);
+
+    if(battle.m_start > 0 && battle.m_end < dateseconds)
+    {
+        battle.report(&battle);
+        battle.reset(&battle);
+    }
+
+    struct Action action;
+    Action_ctor(&action);
+    action.parse(&action, message);
     switch(action.type)
     {
         case CHAT:
@@ -54,45 +64,65 @@ void tellme(struct String line)
         }
         case MELEE:
         {
-            printf("Melee: %s:\n", message.data);
-            printf("      ");
-            printf(" %.*s", (int)action.source.length, action.source.data);
-            printf("|%.*s", (int)action.verb.length, action.verb.data);
-            printf("|%.*s", (int)action.target.length, action.target.data);
-            printf("|%ld", action.damage);
-            printf("\n");
-            battle.totalDamage += action.damage;
+            if(config.verbosity > 0)
+            {
+                printf("Melee: %s:\n", message.data);
+                printf("      ");
+                printf(" %.*s", (int)action.source.length, action.source.data);
+                printf("|%.*s", (int)action.verb.length, action.verb.data);
+                printf("|%.*s", (int)action.target.length, action.target.data);
+                printf("|%ld", action.damage);
+                printf("\n");
+            }
+            if(battle.m_start == 0)
+                battle.start(&battle, dateseconds);
+            battle.m_end = dateseconds + config.keepAlive;
+            battle.m_totalDamage += action.damage;
             break;
         }
         case MAGIC:
         {
-            printf("Magic: %s:\n", message.data);
-            printf("      ");
-            printf(" %.*s", (int)action.target.length, action.target.data);
-            printf("|%.*s", (int)action.verb.length, action.verb.data);
-            printf("|%ld", action.damage);
-            printf("\n");
-            battle.totalDamage += action.damage;
+            if(config.verbosity > 0)
+            {
+                printf("Magic: %s:\n", message.data);
+                printf("      ");
+                printf(" %.*s", (int)action.target.length, action.target.data);
+                printf("|%.*s", (int)action.verb.length, action.verb.data);
+                printf("|%ld", action.damage);
+                printf("\n");
+            }
+            if(battle.m_start == 0)
+                battle.start(&battle, dateseconds);
+            battle.m_end = dateseconds + config.keepAlive;
+            battle.m_totalDamage += action.damage;
             break;
         }
         case HEAL:
         {
-            printf("Heal : %s:\n", message.data);
-            printf("      ");
-            printf(" %.*s", (int)action.target.length, action.target.data);
-            printf("|%.*s", (int)action.verb.length, action.verb.data);
-            printf("|%ld", action.damage);
-            printf("\n");
-            battle.totalHeals += action.damage;
+            if(config.verbosity > 0)
+            {
+                printf("Heal : %s:\n", message.data);
+                printf("      ");
+                printf(" %.*s", (int)action.target.length, action.target.data);
+                printf("|%.*s", (int)action.verb.length, action.verb.data);
+                printf("|%ld", action.damage);
+                printf("\n");
+            }
+            if(battle.m_start == 0)
+                battle.start(&battle, dateseconds);
+            battle.m_end = dateseconds + config.keepAlive;
+            battle.m_totalHeals += action.damage;
             break;
         }
+        case UNKNOWN:
         default:
         {
-            if(config.verbose)
+            if(config.verbosity > 1)
                 fprintf(stderr, "[%zd]:[%ld] %s\n", lineno, dateseconds, message.data);
             break;
         }
     }
+    action.dtor(&action);
 }
 
 int main(int argc, char **argv)
@@ -105,7 +135,6 @@ int main(int argc, char **argv)
         };
         config.since = parseDate(datestring);
     }
-    tail(argv[1], tellme);
-    reportBattle();
+    tail(argv[1], &tellme);
     return 0;
 }

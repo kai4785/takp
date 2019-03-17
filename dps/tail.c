@@ -33,7 +33,7 @@ void tail(const char* filename, tailfn callback)
         return;
     }
     printf("tail %s\n", filename);
-    char line[64 * 1024];
+    char line[64 * 1024] = {0};
     while(1)
     {
         ssize_t fileSize = fdSize(fd);
@@ -47,7 +47,7 @@ void tail(const char* filename, tailfn callback)
         if(readSize == 0)
         {
             if(!config.follow)
-                return;
+                break;
             printf("Waiting for more data to read.\n");
             sleep(1);
         }
@@ -57,7 +57,7 @@ void tail(const char* filename, tailfn callback)
             if (line[here] == '\r')
             {
                 line[here] = '\0';
-                here++;
+                continue;
             }
             if (line[here] == '\n')
             {
