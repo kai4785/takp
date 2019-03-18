@@ -41,57 +41,59 @@ enum {
 void parseVerb(struct Action* this, struct String message)
 {
     // TODO: Measure this, does it take a time to build this on the stack?
-    struct String verbs[] = {
-        CONST_STRING(" backstab "),
-        CONST_STRING(" backstabs "),
-        CONST_STRING(" bash "),
-        CONST_STRING(" bashes "),
-        CONST_STRING(" bites "),
-        CONST_STRING(" claw "),
-        CONST_STRING(" claws "),
-        CONST_STRING(" crush "),
-        CONST_STRING(" crushes "),
-        CONST_STRING(" gore "),
-        CONST_STRING(" gores "),
-        CONST_STRING(" hit "),
-        CONST_STRING(" hits "),
-        CONST_STRING(" kick "),
-        CONST_STRING(" kicks "),
-        CONST_STRING(" maul "),
-        CONST_STRING(" mauls "),
-        CONST_STRING(" pierce "),
-        CONST_STRING(" pierces "),
-        CONST_STRING(" punch "),
-        CONST_STRING(" punches "),
-        CONST_STRING(" rend "),
-        CONST_STRING(" rends "),
-        CONST_STRING(" slash "),
-        CONST_STRING(" slashes "),
-        CONST_STRING(" slice "),
-        CONST_STRING(" slices "),
-        CONST_STRING(" smash "),
-        CONST_STRING(" smashes "),
+    static struct SimpleString verbs[] = {
+        SIMPLE_STRING(" backstab "),
+        SIMPLE_STRING(" backstabs "),
+        SIMPLE_STRING(" bash "),
+        SIMPLE_STRING(" bashes "),
+        SIMPLE_STRING(" bites "),
+        SIMPLE_STRING(" claw "),
+        SIMPLE_STRING(" claws "),
+        SIMPLE_STRING(" crush "),
+        SIMPLE_STRING(" crushes "),
+        SIMPLE_STRING(" gore "),
+        SIMPLE_STRING(" gores "),
+        SIMPLE_STRING(" hit "),
+        SIMPLE_STRING(" hits "),
+        SIMPLE_STRING(" kick "),
+        SIMPLE_STRING(" kicks "),
+        SIMPLE_STRING(" maul "),
+        SIMPLE_STRING(" mauls "),
+        SIMPLE_STRING(" pierce "),
+        SIMPLE_STRING(" pierces "),
+        SIMPLE_STRING(" punch "),
+        SIMPLE_STRING(" punches "),
+        SIMPLE_STRING(" rend "),
+        SIMPLE_STRING(" rends "),
+        SIMPLE_STRING(" slash "),
+        SIMPLE_STRING(" slashes "),
+        SIMPLE_STRING(" slice "),
+        SIMPLE_STRING(" slices "),
+        SIMPLE_STRING(" smash "),
+        SIMPLE_STRING(" smashes "),
     };
-    const struct String nonMeleeVerb = CONST_STRING(" was hit by ");
-    const struct String healedVerb = CONST_STRING(" have been healed ");
+    struct SimpleString nonMeleeVerb = SIMPLE_STRING(" was hit by ");
+    struct SimpleString healedVerb = SIMPLE_STRING(" have been healed ");
     // 0 initial
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
     //   found target length, looking for damage value
     int state = Split0;
-    struct String damage = {0};
+    char* damage_here = NULL;
     for(size_t i = 0; i < message.length; i++)
     {
         // If we found the start of a word
         if(message.data[i] == ' ')
         {
-            struct String here = {
-                .data = message.data + i,
-                .length = message.length - i,
-            };
+            struct String here;
+            String_ctorHold(
+                &here,
+                message.data + i,
+                message.length - i
+            );
             if(state == Split0)
             {
-                if(startsWith(here, nonMeleeVerb))
+                if(here.startsWith(&here, &nonMeleeVerb))
                 {
                     this->type = MAGIC;
                     this->target.data = message.data;
@@ -101,7 +103,7 @@ void parseVerb(struct Action* this, struct String message)
                     i += nonMeleeVerb.length;
                     state = Split2;
                 }
-                else if(startsWith(here, healedVerb))
+                else if(here.startsWith(&here, &healedVerb))
                 {
                     this->type = HEAL;
                     this->target.data = message.data;
@@ -115,7 +117,7 @@ void parseVerb(struct Action* this, struct String message)
                 {
                     for(size_t j = 0; j < ARRAY_SIZE(verbs); j++)
                     {
-                        if(startsWith(here, verbs[j]))
+                        if(here.startsWith(&here, &verbs[j]))
                         {
                             // We found it!
                             this->type = MELEE;
@@ -135,25 +137,32 @@ void parseVerb(struct Action* this, struct String message)
             else if(state == Split1 || state == Split2)
             {
                 // Now we're looking for the end of target, by searching for "for"
-                struct String _for_ = CONST_STRING(" for ");
-                if(startsWith(here, _for_))
+                struct SimpleString _for_ = SIMPLE_STRING(" for ");
+                if(here.startsWith(&here, &_for_))
                 {
                     if(state == Split1)
                         this->target.length = message.data + i - this->target.data;
-                    damage.data = message.data + i + _for_.length;
+                    damage_here = message.data + i + _for_.length;
                     state = Split3;
                 }
             }
             else if(state == Split3)
             {
-                struct String _point = CONST_STRING(" point");
-                if(startsWith(here, _point))
+                struct SimpleString _point = SIMPLE_STRING(" point");
+                if(here.startsWith(&here, &_point))
                 {
-                    damage.length = message.data + i - damage.data;
-                    this->damage = toInt(damage);
+                    struct String damage;
+                    String_ctorHold(&damage,
+                        damage_here,
+                        message.data + i - damage_here
+                    );
+                    damage_here = NULL;
+                    this->damage = damage.toInt(&damage);
+                    damage.dtor(&damage);
                     break;
                 }
             }
+            here.dtor(&here);
         }
     }
 }
@@ -181,9 +190,10 @@ void parseVerb(struct Action* this, struct String message)
 
 void Action_parse(struct Action* this, struct String message)
 {
-    const struct String pointsOfDamage = CONST_STRING("points of damage.");
-    const struct String pointOfDamage = CONST_STRING("point of damage.");
-    if(endsWith(message, pointsOfDamage) || endsWith(message, pointOfDamage))
+    static struct SimpleString pointsOfDamage = SIMPLE_STRING("points of damage.");
+    static struct SimpleString pointOfDamage = SIMPLE_STRING("point of damage.");
+    if(message.endsWith(&message, &pointsOfDamage) 
+        || message.endsWith(&message, &pointOfDamage))
     {
         parseVerb(this, message);
     }

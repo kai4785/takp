@@ -109,9 +109,9 @@ void Battle_melee(struct Battle* this, struct Action* action)
         struct String* tmp = (struct String*)this->m_pc.at(&this->m_pc, i);
         if(tmp)
         {
-            if(&action->source.length && tmp->op_equal(tmp, &action->source))
+            if(&action->source.length && tmp->op_equal(tmp, action->source.to_SimpleString(&action->source)))
                 foundSource = tmp;
-            if(&action->target.length && tmp->op_equal(tmp, &action->target))
+            if(&action->target.length && tmp->op_equal(tmp, action->target.to_SimpleString(&action->target)))
                 foundTarget = tmp;
             if(foundSource && foundTarget)
                 break;

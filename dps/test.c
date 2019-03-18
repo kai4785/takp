@@ -64,7 +64,8 @@ int testDates()
 int _validateAction(struct Action action, const char* file, int line)
 {
     int errors = 0;
-    struct String actionMessage = CONST_STRING((char*)action.message);
+    struct String actionMessage;
+    String_ctorHold(&actionMessage, (char*)action.message, strlen(action.message));
     struct Action newAction;
     Action_ctor(&newAction);
     newAction.parse(&newAction, actionMessage);
@@ -73,7 +74,7 @@ int _validateAction(struct Action action, const char* file, int line)
         fprintf(stderr, "[%s:%d]: Action type mismatch: %d != %d\n", file, line, action.type, newAction.type);
         errors++;
     }
-    if(!action.source.op_equal(&action.source, &newAction.source))
+    if(!action.source.op_equal(&action.source, newAction.source.to_SimpleString(&newAction.source)))
     {
         fprintf(stderr, "[%s:%d]: Action source mismatch: %.*s != %.*s\n",
             file, line,
@@ -81,7 +82,7 @@ int _validateAction(struct Action action, const char* file, int line)
             (int)newAction.source.length, newAction.source.data);
         errors++;
     }
-    if(!action.source.op_equal(&action.target, &newAction.target))
+    if(!action.source.op_equal(&action.target, newAction.target.to_SimpleString(&newAction.target)))
     {
         fprintf(stderr, "[%s:%d]: Action target mismatch: %.*s != %.*s\n",
             file, line,
@@ -89,7 +90,7 @@ int _validateAction(struct Action action, const char* file, int line)
             (int)newAction.target.length, newAction.target.data);
         errors++;
     }
-    if(!action.source.op_equal(&action.verb, &newAction.verb))
+    if(!action.source.op_equal(&action.verb, newAction.verb.to_SimpleString(&newAction.verb)))
     {
         fprintf(stderr, "[%s:%d]: Action verb mismatch: %.*s != %.*s\n",
             file, line,

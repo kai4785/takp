@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 add_compile_options(-pg)
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")

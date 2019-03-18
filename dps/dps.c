@@ -32,7 +32,6 @@ void tellme(struct String line)
     if(line.length == 0)
         return;
     struct String datestring = {0};
-    struct String message = {0};
     int64_t dateseconds = 0;
 
     if(line.length < 27 || !(line.data[0] == '[' && line.data[25] == ']'))
@@ -42,8 +41,11 @@ void tellme(struct String line)
     }
     datestring.data = line.data + 1;
     datestring.length = 24;
-    message.data = &line.data[27];
-    message.length = line.length - 27;
+    struct String message;
+    String_ctorHold(&message,
+        &line.data[27],
+        line.length - 27
+    );
     dateseconds = parseDate(datestring);
     if(dateseconds < config.since)
     {
