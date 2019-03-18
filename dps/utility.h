@@ -11,7 +11,7 @@ struct String;
 void String_ctor    (struct String* this);
 void String_ctorHold(struct String* this, char* data, size_t length);
 void String_ctorDup (struct String* this, char* data, size_t length);
-void String_ctorCopy(struct String* this, const struct String* that);
+void String_ctorCopy(struct String* this, struct String* that);
 struct String* String_new();
 struct String
 {

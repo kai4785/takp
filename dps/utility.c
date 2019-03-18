@@ -41,6 +41,12 @@ void String_ctorHold(struct String* this, char* data, size_t length)
     this->length = length;
 }
 
+void String_ctorCopy(struct String* this, struct String* that)
+{
+    String_ctor(this);
+    String_copy(this, that);
+}
+
 bool startsWith(const struct String lhs, struct String rhs)
 {
     if(lhs.length < rhs.length)

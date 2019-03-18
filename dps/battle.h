@@ -2,6 +2,7 @@
 #define BATTLE_H
 
 #include "array.h"
+#include "action.h"
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -36,13 +37,10 @@ struct Battle
     void (*start)(struct Battle* this, int64_t now);
     void (*reset)(struct Battle* this);
     void (*report)(struct Battle* this);
+    void (*melee)(struct Battle* this, struct Action* action);
     void (*dtor)(struct Battle* this);
 };
 
 extern struct Battle battle;
-
-void startBattle();
-void resetBattle();
-void reportBattle();
 
 #endif // BATTLE_H

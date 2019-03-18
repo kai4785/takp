@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 // TODO: Really?
- __attribute((constructor)) void configInstance(void)
+ __attribute((constructor)) void globalConstructor(void)
 {
     config.follow = false;
     config.history = true;
@@ -18,6 +18,10 @@
     config.keepAlive = 10;
     config.verbosity = 0;
     Battle_ctor(&battle);
+}
+ __attribute((destructor)) void globalDestructor(void)
+{
+    battle.dtor(&battle);
 }
 
 void tellme(struct String line)
@@ -76,8 +80,8 @@ void tellme(struct String line)
             }
             if(battle.m_start == 0)
                 battle.start(&battle, dateseconds);
+            battle.melee(&battle, &action);
             battle.m_end = dateseconds + config.keepAlive;
-            battle.m_totalDamage += action.damage;
             break;
         }
         case MAGIC:
@@ -136,5 +140,11 @@ int main(int argc, char **argv)
         config.since = parseDate(datestring);
     }
     tail(argv[1], &tellme);
+    printf("PCs: %zu\n", battle.m_pc.size);
+    for(size_t i = 0; i < battle.m_pc.size; i++)
+    {
+        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
+        printf("PC[%zd]: %.*s\n", i, (int)pc.length, pc.data);
+    }
     return 0;
 }

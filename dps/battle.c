@@ -15,6 +15,7 @@ void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
 void Battle_report(struct Battle* this);
+void Battle_melee(struct Battle* this, struct Action* action);
 
 // Constructors
 void Fight_ctor(struct Fight* this)
@@ -36,7 +37,9 @@ void Battle_ctor(struct Battle* this)
     this->start = &Battle_start;
     this->reset = &Battle_reset;
     this->report = &Battle_report;
+    this->melee = &Battle_melee;
     this->dtor = &Battle_dtor;
+    Array_ctor(&this->m_pc, sizeof(struct String));
 }
 
 struct Battle* Battle_new()
@@ -54,7 +57,13 @@ void Fight_dtor(struct Fight *this)
 
 void Battle_dtor(struct Battle *this)
 {
-    (void)this;
+    // Clear out all of the Strings
+    for(size_t i = 0; i < battle.m_pc.size; i++)
+    {
+        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
+        pc.dtor(&pc);
+    }
+    this->m_pc.dtor(&this->m_pc);
 }
 
 void Battle_start(struct Battle* this, int64_t now)
@@ -65,8 +74,10 @@ void Battle_start(struct Battle* this, int64_t now)
 
 void Battle_reset(struct Battle* this)
 {
-    Battle_dtor(this);
-    Battle_ctor(this);
+    this->m_start = 0;
+    this->m_end = 0;
+    this->m_totalDamage = 0;
+    this->m_totalHeals = 0;
 }
 
 void Battle_report(struct Battle* this)
@@ -74,4 +85,36 @@ void Battle_report(struct Battle* this)
     printf("Battle report! %ld -> %ld = %lds\n", this->m_start, this->m_end, this->m_end - this->m_start);
     printf("Total Damage: %ld\n", this->m_totalDamage);
     printf("Total Heals: %ld\n", this->m_totalHeals);
+}
+
+void Battle_melee(struct Battle* this, struct Action* action)
+{
+    struct String* foundSource = NULL;
+    struct String* foundTarget = NULL;
+    for(size_t i = 0; i < this->m_pc.size; i++)
+    {
+        struct String* tmp = (struct String*)this->m_pc.at(&this->m_pc, i);
+        if(tmp)
+        {
+            if(&action->source.length && tmp->op_equal(tmp, &action->source))
+                foundSource = tmp;
+            if(&action->target.length && tmp->op_equal(tmp, &action->target))
+                foundTarget = tmp;
+            if(foundSource && foundTarget)
+                break;
+        }
+    }
+    if(!foundSource)
+    {
+        struct String saveme;
+        String_ctorCopy(&saveme, &action->source);
+        this->m_pc.push(&this->m_pc, &saveme);
+    }
+    if(!foundTarget)
+    {
+        struct String saveme;
+        String_ctorCopy(&saveme, &action->target);
+        this->m_pc.push(&this->m_pc, &saveme);
+    }
+    this->m_totalDamage += action->damage;
 }
