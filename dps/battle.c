@@ -55,6 +55,17 @@ void Fight_dtor(struct Fight *this)
     (void)this;
 }
 
+void Battle_clearPCs(struct Battle *this)
+{
+    // Clear out all of the Strings
+    for(size_t i = 0; i < battle.m_pc.size; i++)
+    {
+        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
+        pc.dtor(&pc);
+    }
+    battle.m_pc.clear(&battle.m_pc);
+}
+
 void Battle_dtor(struct Battle *this)
 {
     // Clear out all of the Strings
@@ -78,6 +89,8 @@ void Battle_reset(struct Battle* this)
     this->m_end = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
+    Battle_dtor(this);
+    Array_ctor(&this->m_pc, sizeof(struct String));
 }
 
 void Battle_report(struct Battle* this)
