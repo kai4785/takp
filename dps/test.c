@@ -154,7 +154,6 @@ int testActions()
     action.message = "Foo`s warder slashes a giant lizard for 33 points of damage.";
     errors += validateAction(action);
 
-#if 0
     action.type = MAGIC;
     action.source.clear(&action.source);
     action.target = CONST_STRING("You");
@@ -186,7 +185,6 @@ int testActions()
     action.damage = 1;
     action.message = "Your body combusts as the lava hits you.  You have taken 1 point of damage.";
     errors += validateAction(action);
-#endif
 
     action.dtor(&action);
     return errors;

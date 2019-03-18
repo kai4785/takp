@@ -35,11 +35,39 @@ enum {
     Split1,
     Split2,
     Split3,
-    Split4,
-    Split5,
 };
 void parseVerb(struct Action* this, struct String message)
 {
+    struct String here;
+    String_ctor(&here);
+    struct SimpleString aeVerb = SIMPLE_STRING(" have taken ");
+    // First things first, find the AE damage, cause sometimes it says "hit". It's really easy to find.
+    for(size_t i = message.length - 1; i > aeVerb.length + 1; i--)
+    {
+        // Look for the space before the aeVerb that comes before the damage value
+        if(message.data[i - aeVerb.length] == ' ')
+        {
+            // Make sure that the aeVerb is found immediately before the damage value
+            size_t verbStart = i - aeVerb.length;
+            here.hold(&here,
+                message.data + verbStart,
+                aeVerb.length);
+            // Look for the aeVerb, if it's not found, there's no aeVerb anywhere
+            if(here.op_equal(&here, &aeVerb))
+            {
+                struct String damage;
+                String_ctorHold(&damage, message.data + i, message.length - i);
+                // This is a special AE type message; we just parse it and return, or break and continue;
+                this->type = MAGIC;
+                this->target.hold(&this->target, message.data, 3); // These lines begin with "You"
+                this->verb.hold(&this->verb, aeVerb.data + 1, aeVerb.length - 2); // Trim leading/trailing slash
+                this->damage = damage.toInt(&damage);
+                damage.dtor(&damage);
+                return;
+            }
+            break;
+        }
+    }
     // TODO: Measure this, does it take a time to build this on the stack?
     static struct SimpleString verbs[] = {
         SIMPLE_STRING(" backstab "),
@@ -74,16 +102,11 @@ void parseVerb(struct Action* this, struct String message)
     };
     struct SimpleString nonMeleeVerb = SIMPLE_STRING(" was hit by ");
     struct SimpleString healedVerb = SIMPLE_STRING(" have been healed ");
-    struct SimpleString aeVerb = SIMPLE_STRING(" have taken");
-    (void)aeVerb;
     // 0 initial
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
     //   found target length, looking for damage value
     int state = Split0;
-    char* damage_here = NULL;
-    struct String here;
-    String_ctor(&here);
     for(size_t i = 0; i < message.length; i++)
     {
         // If we found the start of a word
@@ -145,24 +168,10 @@ void parseVerb(struct Action* this, struct String message)
                 {
                     if(state == Split1)
                         this->target.length = message.data + i - this->target.data;
-                    damage_here = message.data + i + _for_.length;
-                    state = Split3;
-                }
-            }
-            else if(state == Split3)
-            {
-                struct SimpleString _point = SIMPLE_STRING(" point");
-                if(here.startsWith(&here, &_point))
-                {
                     struct String damage;
-                    String_ctorHold(&damage,
-                        damage_here,
-                        message.data + i - damage_here
-                    );
-                    damage_here = NULL;
+                    String_ctorHold(&damage, message.data + i + _for_.length, message.length - i - _for_.length);
                     this->damage = damage.toInt(&damage);
                     damage.dtor(&damage);
-                    break;
                 }
             }
         }
@@ -193,11 +202,16 @@ void parseVerb(struct Action* this, struct String message)
 
 void Action_parse(struct Action* this, struct String message)
 {
-    static struct SimpleString pointsOfDamage = SIMPLE_STRING("points of damage.");
-    static struct SimpleString pointOfDamage = SIMPLE_STRING("point of damage.");
-    if(message.endsWith(&message, &pointsOfDamage) 
-        || message.endsWith(&message, &pointOfDamage))
+    static struct SimpleString pointsOfDamage = SIMPLE_STRING(" points of damage.");
+    static struct SimpleString pointOfDamage = SIMPLE_STRING(" point of damage.");
+    if(message.endsWith(&message, &pointsOfDamage))
     {
+        message.length -= pointsOfDamage.length;
+        parseVerb(this, message);
+    }
+    else if(message.endsWith(&message, &pointOfDamage))
+    {
+        message.length -= pointOfDamage.length;
         parseVerb(this, message);
     }
 }

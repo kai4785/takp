@@ -187,9 +187,6 @@ void Battle_melee(struct Battle* this, struct Action* action)
 {
     ssize_t sourceId = Battle_getPCIndex(this, &action->source);
     ssize_t targetId = Battle_getPCIndex(this, &action->target);
-    // TODO: Handle this case
-    if(sourceId < 0 || targetId < 0)
-        return;
 
     struct Fight* fight = Battle_getFightIndex(this, sourceId, targetId);
     fight->hits++;
