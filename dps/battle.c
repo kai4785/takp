@@ -20,8 +20,15 @@ void Battle_melee(struct Battle* this, struct Action* action);
 // Constructors
 void Fight_ctor(struct Fight* this)
 {
-    *this = (struct Fight){0};
-    this->dtor = &Fight_dtor;
+    *this = (struct Fight){
+        .sourceId = 0,
+        .targetId = 0,
+        .start = 0,
+        .end = 0,
+        .hits = 0,
+        .damage = 0,
+        .dtor = &Fight_dtor
+    };
 }
 
 struct Fight* Fight_new()
@@ -40,6 +47,7 @@ void Battle_ctor(struct Battle* this)
     this->melee = &Battle_melee;
     this->dtor = &Battle_dtor;
     Array_ctor(&this->m_pc, sizeof(struct String));
+    Array_ctor(&this->m_fight, sizeof(struct Fight));
 }
 
 struct Battle* Battle_new()
@@ -69,12 +77,9 @@ void Battle_clearPCs(struct Battle *this)
 void Battle_dtor(struct Battle *this)
 {
     // Clear out all of the Strings
-    for(size_t i = 0; i < battle.m_pc.size; i++)
-    {
-        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
-        pc.dtor(&pc);
-    }
+    Battle_clearPCs(this);
     this->m_pc.dtor(&this->m_pc);
+    this->m_fight.dtor(&this->m_fight);
 }
 
 void Battle_start(struct Battle* this, int64_t now)
@@ -89,45 +94,106 @@ void Battle_reset(struct Battle* this)
     this->m_end = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
-    Battle_dtor(this);
-    Array_ctor(&this->m_pc, sizeof(struct String));
+    Battle_clearPCs(this);
+    this->m_fight.clear(&this->m_fight);
 }
 
 void Battle_report(struct Battle* this)
 {
     printf("Battle report! %ld -> %ld = %lds\n", this->m_start, this->m_end, this->m_end - this->m_start);
-    printf("Total Damage: %ld\n", this->m_totalDamage);
     printf("Total Heals: %ld\n", this->m_totalHeals);
+    for(size_t i = 0; i < this->m_fight.size; i++)
+    {
+        struct Fight* fight = this->m_fight.at(&this->m_fight, i);
+        struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
+        struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
+        printf("Fight: %.*s -> %.*s, hits %ld, damage %ld\n",
+            (int)source->length, source->data,
+            (int)target->length, target->data,
+            fight->hits,
+            fight->damage
+        );
+    }
+}
+
+bool Battle_isMe(struct String* pc)
+{
+    if(pc->length == 3)
+    {
+        if(pc->data[0] == 'Y')
+        {
+            if(
+                (pc->data[1] == 'o' && pc->data[2] == 'u') ||
+                (pc->data[1] == 'O' && pc->data[2] == 'U')
+            )
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+int64_t Battle_getPCIndex(struct Battle* this, struct String* pc)
+{
+    int64_t id = -1;
+    if(!pc || !pc->length)
+        return id;
+    struct SimpleString* findme = NULL;
+    if(Battle_isMe(pc))
+        findme = &config.me;
+    else
+        findme = pc->to_SimpleString(pc);
+    for(size_t i = 0; i < this->m_pc.size; i++)
+    {
+        struct String* tmp = (struct String*)this->m_pc.at(&this->m_pc, i);
+        if(tmp && tmp->op_equal(tmp, findme))
+        {
+            id = i;
+            break;
+        }
+    }
+    if(id < 0)
+    {
+        struct String saveme;
+        String_ctorCopy(&saveme, findme);
+        id = this->m_pc.size;
+        this->m_pc.push(&this->m_pc, &saveme);
+        // Don't destroy saveme, we stuffed it into the array
+    }
+    return id;
+}
+
+struct Fight* Battle_getFightIndex(struct Battle* this, int64_t sourceId, int64_t targetId)
+{
+    for(size_t i = 0; i < this->m_fight.size; i++)
+    {
+        struct Fight* tmp = (struct Fight*)this->m_fight.at(&this->m_fight, i);
+        if(tmp->sourceId == sourceId && tmp->targetId == targetId)
+        {
+            return tmp;
+        }
+    }
+    // Make a new fight
+    struct Fight fight;
+    Fight_ctor(&fight);
+    fight.sourceId = sourceId;
+    fight.targetId = targetId;
+    this->m_fight.push(&this->m_fight, &fight);
+    return (struct Fight*)this->m_fight.at(&this->m_fight, this->m_fight.size - 1);
 }
 
 void Battle_melee(struct Battle* this, struct Action* action)
 {
-    struct String* foundSource = NULL;
-    struct String* foundTarget = NULL;
-    for(size_t i = 0; i < this->m_pc.size; i++)
-    {
-        struct String* tmp = (struct String*)this->m_pc.at(&this->m_pc, i);
-        if(tmp)
-        {
-            if(&action->source.length && tmp->op_equal(tmp, action->source.to_SimpleString(&action->source)))
-                foundSource = tmp;
-            if(&action->target.length && tmp->op_equal(tmp, action->target.to_SimpleString(&action->target)))
-                foundTarget = tmp;
-            if(foundSource && foundTarget)
-                break;
-        }
-    }
-    if(!foundSource)
-    {
-        struct String saveme;
-        String_ctorCopy(&saveme, &action->source);
-        this->m_pc.push(&this->m_pc, &saveme);
-    }
-    if(!foundTarget)
-    {
-        struct String saveme;
-        String_ctorCopy(&saveme, &action->target);
-        this->m_pc.push(&this->m_pc, &saveme);
-    }
+    ssize_t sourceId = Battle_getPCIndex(this, &action->source);
+    ssize_t targetId = Battle_getPCIndex(this, &action->target);
+    // TODO: Handle this case
+    if(sourceId < 0 || targetId < 0)
+        return;
+
+    struct Fight* fight = Battle_getFightIndex(this, sourceId, targetId);
+    fight->hits++;
+    fight->damage += action->damage;
+
     this->m_totalDamage += action->damage;
 }

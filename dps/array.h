@@ -20,7 +20,7 @@ struct Array
     size_t datumSize;
     void *data;
     // Functions
-    void (*resize)(struct Array* this, size_t count);
+    void (*resize)(struct Array* this, size_t newCapacity);
     void (*clear)(struct Array* this);
     void (*push)(struct Array* this, void* datum);
     void* (*at)(struct Array* this, size_t pos);

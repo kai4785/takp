@@ -13,8 +13,12 @@ void Fight_ctor(struct Fight* this);
 struct Fight* Fight_new();
 struct Fight
 {
+    int64_t sourceId;
+    int64_t targetId;
     int64_t start;
     int64_t end;
+    int64_t hits;
+    int64_t damage;
     void (*dtor)(struct Fight* this);
 };
 
@@ -30,6 +34,7 @@ struct Battle
     .crits = defaultdict(int)
 #endif
     struct Array m_pc;
+    struct Array m_fight;
     int64_t m_start;
     int64_t m_end;
     int64_t m_totalDamage;

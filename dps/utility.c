@@ -43,7 +43,7 @@ void String_ctorHold(struct String* this, char* data, size_t length)
     this->length = length;
 }
 
-void String_ctorCopy(struct String* this, struct String* that)
+void String_ctorCopy(struct String* this, struct SimpleString* that)
 {
     String_ctor(this);
     this->dup(this, that->data, that->length);
@@ -52,7 +52,10 @@ void String_ctorCopy(struct String* this, struct String* that)
 // Member function implementations
 void String_hold(struct String* this, char* data, size_t length)
 {
-    this->clear(this);
+    if(this->ownsPtr)
+    {
+        free(this->data);
+    }
     this->data = data;
     this->length = length;
     this->ownsPtr = false;
@@ -60,7 +63,10 @@ void String_hold(struct String* this, char* data, size_t length)
 
 void String_dup(struct String* this, char* data, size_t length)
 {
-    this->clear(this);
+    if(this->ownsPtr)
+    {
+        free(this->data);
+    }
     this->data = strndup(data, length);
     this->length = length;
     this->ownsPtr = true;
@@ -68,7 +74,10 @@ void String_dup(struct String* this, char* data, size_t length)
 
 void String_copy(struct String* this, struct SimpleString* that)
 {
-    this->clear(this);
+    if(this->ownsPtr)
+    {
+        free(this->data);
+    }
     this->data = strndup(that->data, that->length);
     this->length = that->length;
     this->ownsPtr = true;

@@ -74,19 +74,22 @@ void parseVerb(struct Action* this, struct String message)
     };
     struct SimpleString nonMeleeVerb = SIMPLE_STRING(" was hit by ");
     struct SimpleString healedVerb = SIMPLE_STRING(" have been healed ");
+    struct SimpleString aeVerb = SIMPLE_STRING(" have taken");
+    (void)aeVerb;
     // 0 initial
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
     //   found target length, looking for damage value
     int state = Split0;
     char* damage_here = NULL;
+    struct String here;
+    String_ctor(&here);
     for(size_t i = 0; i < message.length; i++)
     {
         // If we found the start of a word
         if(message.data[i] == ' ')
         {
-            struct String here;
-            String_ctorHold(
+            here.hold(
                 &here,
                 message.data + i,
                 message.length - i
@@ -162,9 +165,9 @@ void parseVerb(struct Action* this, struct String message)
                     break;
                 }
             }
-            here.dtor(&here);
         }
     }
+    here.dtor(&here);
 }
 
 /* Battle messages are one of the following.

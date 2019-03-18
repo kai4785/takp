@@ -13,7 +13,7 @@
 {
     config.follow = false;
     config.history = true;
-    config.me = NULL;
+    config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
     config.logfile = NULL;
     config.since = 0;
     config.keepAlive = 10;
@@ -72,6 +72,7 @@ int _validateAction(struct Action action, const char* file, int line)
     if(!(action.type == newAction.type))
     {
         fprintf(stderr, "[%s:%d]: Action type mismatch: %d != %d\n", file, line, action.type, newAction.type);
+        fprintf(stderr, "  :%s\n", action.message);
         errors++;
     }
     if(!action.source.op_equal(&action.source, newAction.source.to_SimpleString(&newAction.source)))
@@ -80,6 +81,7 @@ int _validateAction(struct Action action, const char* file, int line)
             file, line,
             (int)action.source.length, action.source.data,
             (int)newAction.source.length, newAction.source.data);
+        fprintf(stderr, "  :%s\n", action.message);
         errors++;
     }
     if(!action.source.op_equal(&action.target, newAction.target.to_SimpleString(&newAction.target)))
@@ -88,6 +90,7 @@ int _validateAction(struct Action action, const char* file, int line)
             file, line,
             (int)action.target.length, action.target.data,
             (int)newAction.target.length, newAction.target.data);
+        fprintf(stderr, "  :%s\n", action.message);
         errors++;
     }
     if(!action.source.op_equal(&action.verb, newAction.verb.to_SimpleString(&newAction.verb)))
@@ -96,6 +99,7 @@ int _validateAction(struct Action action, const char* file, int line)
             file, line,
             (int)action.verb.length, action.verb.data,
             (int)newAction.verb.length, newAction.verb.data);
+        fprintf(stderr, "  :%s\n", action.message);
         errors++;
     }
     if(action.damage != newAction.damage)
@@ -104,6 +108,7 @@ int _validateAction(struct Action action, const char* file, int line)
             file, line,
             action.damage,
             newAction.damage);
+        fprintf(stderr, "  :%s\n", action.message);
         errors++;
     }
     newAction.dtor(&newAction);
@@ -148,6 +153,40 @@ int testActions()
     action.damage = 33;
     action.message = "Foo`s warder slashes a giant lizard for 33 points of damage.";
     errors += validateAction(action);
+
+#if 0
+    action.type = MAGIC;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have taken");
+    action.damage = 300;
+    action.message = "You have been lacerated.  You have taken 300 points of damage.";
+    errors += validateAction(action);
+
+    action.type = MAGIC;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have taken");
+    action.damage = 1;
+    action.message = "You have been lacerated.  You have taken 1 points of damage.";
+    errors += validateAction(action);
+
+    action.type = MAGIC;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have taken");
+    action.damage = 130;
+    action.message = "Your body combusts as the lava hits you.  You have taken 130 points of damage.";
+    errors += validateAction(action);
+
+    action.type = MAGIC;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have taken");
+    action.damage = 1;
+    action.message = "Your body combusts as the lava hits you.  You have taken 1 point of damage.";
+    errors += validateAction(action);
+#endif
 
     action.dtor(&action);
     return errors;

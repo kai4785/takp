@@ -23,48 +23,29 @@
 #define DEC (NOV+(DAY*30))
 #define YEAR (DEC+(DAY*31))
 
-// If EQ lasts more than 100 years, we'll need to update this code
-static const int leapYears[] = {
-    2000, 2004, 2008, 2012, 2016, 2020, 2024,
-    2028, 2032, 2036, 2040, 2044, 2048, 2052,
-    2056, 2060, 2064, 2068, 2072, 2076, 2080,
-    2084, 2088, 2092, 2096
-};
+// Are we in a leap year?
+static inline bool isLeapYear(int64_t year)
+{
+    return (year & 3) == 0 && ((year % 25) != 0 || (year & 15) == 0);
+}
 
 // How many leap years since 1999?
 // Does not count current year, since it's dependent on the date
 static inline int leapYearsSince1999(int64_t year)
 {
     int count = 0;
-    for(int i = 0; i < (sizeof(leapYears) / sizeof(*leapYears)); i++)
+    for(int64_t i = 2000; i < year; i+=4)
     {
-        if(year - 1 < leapYears[i])
-            break;
-        count++;
+        count += isLeapYear(i);
     }
     return count;
-}
-
-// Are we in a leap year?
-static inline bool isLeapYear(int64_t year)
-{
-    bool found = 0;
-    for(int i = 0; i < (sizeof(leapYears) / sizeof(*leapYears)); i++)
-    {
-        if(year == leapYears[i])
-        {
-            found = 1;
-            break;
-        }
-    }
-    return found;
 }
 
 // Just parse one date string
 // Wed Mar 06 22:09:37 2019
 // 0   4   8  11:14:17 20
-// Returns "seconds since 'Jan 01 00:00:00 0000'"
 // Returns "seconds since 'Tue Mar 16 00:00:00 1999'", Everquest's Release date
+// EQDate is calculated by running the code below, with EQDate set to 0.
 const int64_t EQDate = 63046857600;
 int64_t parseDate(const struct String datestring)
 {

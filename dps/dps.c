@@ -12,7 +12,7 @@
 {
     config.follow = false;
     config.history = true;
-    config.me = NULL;
+    config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
     config.logfile = NULL;
     config.since = 0;
     config.keepAlive = 10;
@@ -142,11 +142,5 @@ int main(int argc, char **argv)
         config.since = parseDate(datestring);
     }
     tail(argv[1], &tellme);
-    printf("PCs: %zu\n", battle.m_pc.size);
-    for(size_t i = 0; i < battle.m_pc.size; i++)
-    {
-        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
-        printf("PC[%zd]: %.*s\n", i, (int)pc.length, pc.data);
-    }
     return 0;
 }

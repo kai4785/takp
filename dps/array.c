@@ -6,7 +6,7 @@
 
 // Member function declarations
 void Array_push(struct Array* this, void* datum);
-void Array_resize(struct Array* this, size_t count);
+void Array_resize(struct Array* this, size_t newCapacity);
 void Array_clear(struct Array* this);
 void* Array_at(struct Array* this, size_t pos);
 void Array_dtor(struct Array* this);
@@ -65,11 +65,11 @@ size_t nextCapacity(size_t capacity)
 
 // Function Pointer methods
 
-void Array_resize(struct Array* this, size_t count)
+void Array_resize(struct Array* this, size_t newCapacity)
 {
     if(!this->data)
     {
-        this->capacity = count;
+        this->capacity = newCapacity;
         size_t allocBytes = this->capacity * this->datumSize;
         this->data = malloc(allocBytes);
         if(!this->data)
@@ -77,22 +77,28 @@ void Array_resize(struct Array* this, size_t count)
 
         memset(this->data, 0, allocBytes);
     }
+    if(newCapacity == 0)
+    {
+        free(this->data);
+        this->data = NULL;
+        this->size = this->capacity = 0;
+    }
     else
     {
         size_t oldCapacity = this->capacity;
         size_t oldBytes = oldCapacity * this->datumSize;
-        this->capacity = count;
+        this->capacity = newCapacity;
 
         size_t allocBytes = this->capacity * this->datumSize;
         this->data = realloc(this->data, allocBytes);
         if(!this->data)
             bailout();
 
-        if(oldCapacity < count)
+        if(oldCapacity < newCapacity)
             memset(this->data + oldBytes, 0, allocBytes - oldBytes);
 
-        if(this->size > count)
-            this->size = count;
+        if(this->size > newCapacity)
+            this->size = newCapacity;
     }
 }
 
@@ -115,6 +121,7 @@ void Array_dtor(struct Array* this)
 {
     free(this->data);
     this->data = NULL;
+    this->size = this->capacity = 0;
 }
 
 void* Array_at(struct Array* this, size_t pos)
