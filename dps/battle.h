@@ -42,7 +42,7 @@ struct Battle
     void (*start)(struct Battle* this, int64_t now);
     void (*reset)(struct Battle* this);
     void (*report)(struct Battle* this);
-    void (*melee)(struct Battle* this, struct Action* action);
+    void (*melee)(struct Battle* this, int64_t now, struct Action* action);
     void (*dtor)(struct Battle* this);
 };
 

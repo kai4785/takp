@@ -47,7 +47,7 @@ static inline int leapYearsSince1999(int64_t year)
 // Returns "seconds since 'Tue Mar 16 00:00:00 1999'", Everquest's Release date
 // EQDate is calculated by running the code below, with EQDate set to 0.
 const int64_t EQDate = 63046857600;
-int64_t parseDate(const struct String datestring)
+int64_t parseDate(const struct SimpleString datestring)
 {
     if(datestring.length != 24)
     {

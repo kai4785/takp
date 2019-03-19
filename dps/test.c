@@ -27,7 +27,7 @@
 int _dateEquals(/*const*/ char* date, int64_t expected, const char* file, int line)
 {
     int errors = 0;
-    const struct String dateString =
+    const struct SimpleString dateString =
     {
         .data = date,
         .length = strlen(date)

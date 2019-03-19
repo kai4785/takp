@@ -48,7 +48,6 @@ void tail(const char* filename, tailfn callback)
         {
             if(!config.follow)
                 break;
-            printf("Waiting for more data to read.\n");
             sleep(1);
         }
         size_t last = 0;

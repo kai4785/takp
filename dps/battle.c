@@ -15,7 +15,7 @@ void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
 void Battle_report(struct Battle* this);
-void Battle_melee(struct Battle* this, struct Action* action);
+void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
 
 // Constructors
 void Fight_ctor(struct Fight* this)
@@ -107,11 +107,12 @@ void Battle_report(struct Battle* this)
         struct Fight* fight = this->m_fight.at(&this->m_fight, i);
         struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
         struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
-        printf("Fight: %.*s -> %.*s, hits %ld, damage %ld\n",
+        printf("Fight: %.*s -> %.*s, hits %ld, damage %ld, %lds\n",
             (int)source->length, source->data,
             (int)target->length, target->data,
             fight->hits,
-            fight->damage
+            fight->damage,
+            fight->end - fight->start
         );
     }
 }
@@ -164,7 +165,7 @@ int64_t Battle_getPCIndex(struct Battle* this, struct String* pc)
     return id;
 }
 
-struct Fight* Battle_getFightIndex(struct Battle* this, int64_t sourceId, int64_t targetId)
+struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sourceId, int64_t targetId)
 {
     for(size_t i = 0; i < this->m_fight.size; i++)
     {
@@ -179,18 +180,20 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t sourceId, int64_
     Fight_ctor(&fight);
     fight.sourceId = sourceId;
     fight.targetId = targetId;
+    fight.start = now;
     this->m_fight.push(&this->m_fight, &fight);
     return (struct Fight*)this->m_fight.at(&this->m_fight, this->m_fight.size - 1);
 }
 
-void Battle_melee(struct Battle* this, struct Action* action)
+void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
 {
     ssize_t sourceId = Battle_getPCIndex(this, &action->source);
     ssize_t targetId = Battle_getPCIndex(this, &action->target);
 
-    struct Fight* fight = Battle_getFightIndex(this, sourceId, targetId);
+    struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
     fight->hits++;
     fight->damage += action->damage;
+    fight->end = now;
 
     this->m_totalDamage += action->damage;
 }

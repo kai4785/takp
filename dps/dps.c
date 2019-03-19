@@ -11,8 +11,8 @@
  __attribute((constructor)) void globalConstructor(void)
 {
     config.follow = false;
-    config.history = true;
-    config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
+    config.history = false;
+    config.me = (struct SimpleString)SIMPLE_STRING("You");
     config.logfile = NULL;
     config.since = 0;
     config.keepAlive = 10;
@@ -31,7 +31,6 @@ void tellme(struct String line)
     // empty line
     if(line.length == 0)
         return;
-    struct String datestring = {0};
     int64_t dateseconds = 0;
 
     if(line.length < 27 || !(line.data[0] == '[' && line.data[25] == ']'))
@@ -39,8 +38,10 @@ void tellme(struct String line)
         fprintf(stderr, "[%ld] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
         return;
     }
-    datestring.data = line.data + 1;
-    datestring.length = 24;
+    struct SimpleString datestring = {
+        .data = line.data + 1,
+        .length = 24
+    };
     struct String message;
     String_ctorHold(&message,
         &line.data[27],
@@ -82,7 +83,7 @@ void tellme(struct String line)
             }
             if(battle.m_start == 0)
                 battle.start(&battle, dateseconds);
-            battle.melee(&battle, &action);
+            battle.melee(&battle, dateseconds, &action);
             battle.m_end = dateseconds + config.keepAlive;
             break;
         }
@@ -131,16 +132,75 @@ void tellme(struct String line)
     action.dtor(&action);
 }
 
+#if 0
+From Python
+('--me', '-m', help='Who is "You" in the logs', default='Me')
+('--pc', '-p', action='append', help='Filter to specific (Non-)Player Characters to search for in the logs')
+('--log', '-l', help='Logfile to watch')
+('--history', help='Read the whole log history', action='store_true')
+('--follow', '-f', help='Follow the log file', action='store_true')
+('--since', '-s', help='Parse logs since', default='Thu Jan 01 00:00:00 1970')
+('--keep-alive', '-k', help='Keep alive seconds for each Battle', default=10)
+#endif
 int main(int argc, char **argv)
 {
-    if(argc > 2)
+    struct String opt_me = CONST_STRING("--me");
+    struct String opt_log = CONST_STRING("--log");
+    struct String opt_history = CONST_STRING("--history");
+    struct String opt_follow = CONST_STRING("--follow");
+    struct String opt_since = CONST_STRING("--since");
+    struct String opt_keepalive = CONST_STRING("--keepalive");
+
+    // Ew, manual parsing? Don't mess up, case i'll just barf.
+    char* logfile = NULL;
+    for(int i = 1; i < argc; i++)
     {
-        struct String datestring = {
-            .data = argv[2],
-            .length = strlen(argv[2])
-        };
-        config.since = parseDate(datestring);
+        struct SimpleString arg = SIMPLE_STRING(argv[i]);
+        if(opt_me.op_equal(&opt_me, &arg))
+        {
+            i++;
+            config.me = (struct SimpleString)SIMPLE_STRING(argv[i]);
+        }
+        if(opt_log.op_equal(&opt_log, &arg))
+        {
+            i++;
+            logfile = argv[i];
+        }
+        if(opt_history.op_equal(&opt_history, &arg))
+        {
+            config.history = true;
+        }
+        if(opt_follow.op_equal(&opt_follow, &arg))
+        {
+            config.follow = true;
+        }
+        if(opt_since.op_equal(&opt_since, &arg))
+        {
+            i++;
+            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            config.since = parseDate(datestring);
+            if(config.since < 0)
+            {
+                fprintf(stderr, "Error parsing --since string '%s'\n", argv[i]);
+            }
+        }
+        if(opt_keepalive.op_equal(&opt_keepalive, &arg))
+        {
+            i++;
+            struct String keepalive;
+            String_ctorHold(&keepalive, argv[i], strlen(argv[i]));
+            config.keepAlive = keepalive.toInt(&keepalive);
+            if(config.keepAlive < 0)
+            {
+                fprintf(stderr, "Error parsing --keepalive string '%s'\n", argv[i]);
+            }
+        }
     }
-    tail(argv[1], &tellme);
+    if(!logfile)
+    {
+        fprintf(stderr, "No log file provided (--log)\n");
+        return 1;
+    }
+    tail(logfile, &tellme);
     return 0;
 }

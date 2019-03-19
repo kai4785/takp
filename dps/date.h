@@ -5,6 +5,6 @@
 
 #include <inttypes.h>
 
-int64_t parseDate(const struct String datestring);
+int64_t parseDate(const struct SimpleString datestring);
 
 #endif // DATE_H
