@@ -18,7 +18,7 @@ struct Array
     size_t capacity;
     size_t size;
     size_t datumSize;
-    void *data;
+    uint8_t* data;
     // Functions
     void (*resize)(struct Array* this, size_t newCapacity);
     void (*clear)(struct Array* this);

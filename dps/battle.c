@@ -202,8 +202,8 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sou
 
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
 {
-    ssize_t sourceId = Battle_getPCIndex(this, &action->source);
-    ssize_t targetId = Battle_getPCIndex(this, &action->target);
+    int64_t sourceId = Battle_getPCIndex(this, &action->source);
+    int64_t targetId = Battle_getPCIndex(this, &action->target);
 
     struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
     fight->hits++;

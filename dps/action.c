@@ -41,7 +41,7 @@ void parseVerb(struct Action* this, struct String message)
 {
     struct String here;
     String_ctor(&here);
-    struct SimpleString aeVerb = SIMPLE_STRING(" have taken ");
+    struct SimpleString aeVerb = { .data = " have taken ", .length = 12 };
     // First things first, find the AE damage, cause sometimes it says "hit". It's really easy to find.
     for(size_t i = message.length - 1; i > aeVerb.length + 1; i--)
     {
@@ -70,39 +70,39 @@ void parseVerb(struct Action* this, struct String message)
         }
     }
     // TODO: Measure this, does it take a time to build this on the stack?
-    static struct SimpleString verbs[] = {
-        SIMPLE_STRING(" backstab "),
-        SIMPLE_STRING(" backstabs "),
-        SIMPLE_STRING(" bash "),
-        SIMPLE_STRING(" bashes "),
-        SIMPLE_STRING(" bites "),
-        SIMPLE_STRING(" claw "),
-        SIMPLE_STRING(" claws "),
-        SIMPLE_STRING(" crush "),
-        SIMPLE_STRING(" crushes "),
-        SIMPLE_STRING(" gore "),
-        SIMPLE_STRING(" gores "),
-        SIMPLE_STRING(" hit "),
-        SIMPLE_STRING(" hits "),
-        SIMPLE_STRING(" kick "),
-        SIMPLE_STRING(" kicks "),
-        SIMPLE_STRING(" maul "),
-        SIMPLE_STRING(" mauls "),
-        SIMPLE_STRING(" pierce "),
-        SIMPLE_STRING(" pierces "),
-        SIMPLE_STRING(" punch "),
-        SIMPLE_STRING(" punches "),
-        SIMPLE_STRING(" rend "),
-        SIMPLE_STRING(" rends "),
-        SIMPLE_STRING(" slash "),
-        SIMPLE_STRING(" slashes "),
-        SIMPLE_STRING(" slice "),
-        SIMPLE_STRING(" slices "),
-        SIMPLE_STRING(" smash "),
-        SIMPLE_STRING(" smashes "),
+    struct SimpleString verbs[] = {
+        {" backstab " , 10},
+        {" backstabs ", 11},
+        {" bash "     ,  6},
+        {" bashes "   ,  8},
+        {" bites "    ,  7},
+        {" claw "     ,  6},
+        {" claws "    ,  7},
+        {" crush "    ,  7},
+        {" crushes "  ,  9},
+        {" gore "     ,  6},
+        {" gores "    ,  7},
+        {" hit "      ,  5},
+        {" hits "     ,  6},
+        {" kick "     ,  6},
+        {" kicks "    ,  7},
+        {" maul "     ,  6},
+        {" mauls "    ,  7},
+        {" pierce "   ,  8},
+        {" pierces "  ,  9},
+        {" punch "    ,  7},
+        {" punches "  ,  9},
+        {" rend "     ,  6},
+        {" rends "    ,  7},
+        {" slash "    ,  7},
+        {" slashes "  ,  9},
+        {" slice "    ,  7},
+        {" slices "   ,  8},
+        {" smash "    ,  7},
+        {" smashes "  ,  9},
     };
-    struct SimpleString nonMeleeVerb = SIMPLE_STRING(" was hit by ");
-    struct SimpleString healedVerb = SIMPLE_STRING(" have been healed ");
+    struct SimpleString nonMeleeVerb = { .data = " was hit by ", .length = 12};
+    struct SimpleString healedVerb = { .data = " have been healed ", .length = 18};
     // 0 initial
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
@@ -164,7 +164,7 @@ void parseVerb(struct Action* this, struct String message)
             else if(state == Split1 || state == Split2)
             {
                 // Now we're looking for the end of target, by searching for "for"
-                struct SimpleString _for_ = SIMPLE_STRING(" for ");
+                struct SimpleString _for_ = { .data = " for ", .length = 5};
                 if(here.startsWith(&here, &_for_))
                 {
                     if(state == Split1)
@@ -203,8 +203,8 @@ void parseVerb(struct Action* this, struct String message)
 
 void Action_parse(struct Action* this, struct String message)
 {
-    static struct SimpleString pointsOfDamage = SIMPLE_STRING(" points of damage.");
-    static struct SimpleString pointOfDamage = SIMPLE_STRING(" point of damage.");
+    struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
+    struct SimpleString pointOfDamage = { .data = " point of damage.", .length = 17 };
     if(message.endsWith(&message, &pointsOfDamage))
     {
         message.length -= pointsOfDamage.length;

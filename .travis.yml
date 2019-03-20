@@ -6,7 +6,7 @@ matrix:
   - os: osx
   - os: windows
 script:
-- cmake -H./dps -B./dps/build
+- cmake -H./dps -B./dps/build -DCMAKE_BUILD_TYPE=Release
 - cmake --build ./dps/build
 - cmake --build ./dps/build --target test
 - cmake --build ./dps/build --target package
@@ -22,6 +22,6 @@ deploy:
   file: dps/build/*.zip
   on:
     repo: kai4785/takp
-  draft: true
+  #draft: true
 after_deploy:
 - ls -lh dps/build/dps

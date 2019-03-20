@@ -5,6 +5,7 @@ option(ENABLE_CODE_COVERAGE "Enable code coverage" Off)
 
 enable_testing()
 
+set(CMAKE_C_STANDARD_REQUIRED On)
 set(CMAKE_C_STANDARD 11)
 
 project(eqdps VERSION 0.1.0)

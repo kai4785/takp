@@ -108,9 +108,9 @@ int64_t String_toInt(struct String* this)
 {
     int64_t value = 0;
     int64_t base = 1;
-    for(ssize_t i = this->length - 1; i >= 0; i--)
+    for(size_t i = this->length; i > 0; i--)
     {
-        value += (this->data[i] - '0') * base;
+        value += (this->data[i - 1] - '0') * base;
         base *= 10;
     }
     return value;
