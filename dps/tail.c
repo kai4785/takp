@@ -1,12 +1,12 @@
 #include "tail.h"
 #include "config.h"
+#include "system.h"
 
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 off_t fdSize(int fd)
 {

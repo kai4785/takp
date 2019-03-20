@@ -1,15 +1,26 @@
 cmake_minimum_required(VERSION 3.10)
 
+project(eqdps VERSION 0.1.0)
+
 option(ENABLE_PROFILING "Enable profiling" Off)
 option(ENABLE_CODE_COVERAGE "Enable code coverage" Off)
 
-enable_testing()
+# Platform include checks
+set(CMAKE_INCLUDE_CURRENT_DIR On)
+include(CheckIncludeFiles)
+check_include_files(unistd.h HAVE_UNISTD_H)
+check_include_files(io.h HAVE_IO_H)
+check_include_files(synchapi.h HAVE_SYNCHAPI_H)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/system.h.in ${CMAKE_CURRENT_BINARY_DIR}/system.h)
+
+message(STATUS "HAVE_UNISTD_H ${HAVE_UNISTD_H}")
+message(STATUS "HAVE_IO_H ${HAVE_IO_H}")
+message(STATUS "HAVE_SYNCHAPI_H ${HAVE_SYNCHAPI_H}")
 
 set(CMAKE_C_STANDARD_REQUIRED On)
 set(CMAKE_C_STANDARD 11)
 
-project(eqdps VERSION 0.1.0)
-
+# Platform compiler flags
 if(WIN32)
 else()
     if("${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
@@ -29,6 +40,7 @@ else()
     endif()
 endif()
 
+# Static library with all the code
 add_library(enchilada STATIC
     array.c
     array.h
@@ -46,8 +58,13 @@ add_library(enchilada STATIC
     utility.h
 )
 
+# Main executable
 add_executable(dps dps.c)
 target_link_libraries(dps PRIVATE enchilada)
+install(TARGETS dps RUNTIME DESTINATION .) 
+
+# Here be testing
+enable_testing()
 
 add_executable(dps-test test.c)
 target_link_libraries(dps-test PRIVATE enchilada)
@@ -68,10 +85,7 @@ foreach(UNIT ${UNITS})
     add_test(test-${UNIT} test-${UNIT})
 endforeach()
 
-install(TARGETS dps
-    RUNTIME DESTINATION .
-)
-
+# Make a distributable zip file
 set(CPACK_GENERATOR ZIP)
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 include(CPack)

@@ -1,0 +1,19 @@
+#cmakedefine HAVE_UNISTD_H
+#cmakedefine HAVE_IO_H
+#cmakedefine HAVE_SYNCHAPI_H
+
+#ifdef HAVE_UNISTD_H
+#    include <unistd.h>
+#elif defined HAVE_IO_H
+#    include <io.h>
+#    define lseek _lseek
+#    define read _read
+#    ifdef HAVE_SYNCHAPI_H
+#        include <synchapi.h>
+#        define sleep(_seconds) Sleep(_seconds * 1000)
+#    else
+#        error "Must have synchapi.h for Sleep"
+#    endif
+#else
+#    error "Must have unistd.h or io.h for seek/read/sleep"
+#endif
