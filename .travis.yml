@@ -8,6 +8,7 @@ script:
 - cmake -H./dps -B./dps/build
 - cmake --build ./dps/build
 - cmake --build ./dps/build --target test
+- cmake --build ./dps/build --target package
 - find ./dps/build
 before_deploy:
 - ls -lh dps/build/dps
@@ -16,7 +17,8 @@ deploy:
   skip_cleanup: true
   api_key:
     secure: 37cajkewwhaG9qbJhpzBXhOhHumeI3Xmgsw6qUeQOSPrSm4HKP7iK1OlsE1AGLRvP+J1K9yuuG02wjJeqrPpbO6BWNu3JVjEdjzglby3+Y29D0siQ5Sv4Eff6uTY+YExc8AGtnh2szCewZffnrS1CUH1ytL3En9uxJvbV5vY1Qz6OYzeYbEewqi5V2eZmgVsDw4+C1jDbHsV9nQ28L1G8YII6j+vDyMThWSbVEepppa4tEel+O6DJGgxy2BI2Dqpfb2BbZwzykk+l6P66E2C/xNIVklHmPLsz1X+DxAjh2zqnY+xDTipSV4hLksU3Dl2MztgHApEN6Vew2X9czcn8xWvWQ4FpJDboG6jM0hGAe4h0Z7pOhddcmXzgUzFoMwP+C1VNeA6V9yA+4Gk8b9kAHYd7YDIJLnxykHu7HUF12tMwAzv7WH9kSEAvrfgynTKmUSpNUFsC/I0vZeRNtpxqqX+PYjr8E0Y0MgjvpGBUimzLPQQ+5yqzj6ClqaiM2jIKR3lDr7WM71hbMskIU8Yj95r51Hn2ls4TXQbW+JUMoIVkt0Bu6pS6y5T9ZUPJMRtLUshx0PPThwEnDovfr/+tTMhw3tCHD/m6+lEM+sp2qTAwxAQIeNcGk6gQJznkjhiaC7NvZwRLoBIQzLG+o1S5DV/BHXuzws1choeGaYB/zQ=
-  file: dps/build/dps
+  file:
+  - dps/build/*.zip
   on:
     repo: kai4785/takp
   draft: true

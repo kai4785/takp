@@ -12,9 +12,9 @@ project(eqdps VERSION 0.1.0)
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-microsoft")
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-braces")
 message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
@@ -63,3 +63,11 @@ foreach(UNIT ${UNITS})
     target_link_libraries(test-${UNIT} PRIVATE enchilada)
     add_test(test-${UNIT} test-${UNIT})
 endforeach()
+
+install(TARGETS dps
+    RUNTIME DESTINATION .
+)
+
+set(CPACK_GENERATOR ZIP)
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+include(CPack)
