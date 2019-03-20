@@ -17,6 +17,6 @@ struct Config
     int keepAlive;
 };
 
-extern struct Config config;
+struct Config* configInstance();
 
 #endif // CONFIG_H

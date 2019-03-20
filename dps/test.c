@@ -1,7 +1,6 @@
 #include "array.h"
 #include "action.h"
 #include "battle.h"
-#include "config.h"
 #include "date.h"
 #include "tail.h"
 
@@ -233,23 +232,10 @@ int testArray()
 
 int main()
 {
-    {
-        config.follow = false;
-        config.history = true;
-        config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
-        config.logfile = NULL;
-        config.since = 0;
-        config.keepAlive = 10;
-        config.verbosity = 0;
-        Battle_ctor(&battle);
-    }
     int errors = 0;
     errors += testDates();
     errors += testActions();
     errors += testArray();
     printf("Tests failed: %d\n", errors);
-    {
-        battle.dtor(&battle);
-    }
     return errors;
 }

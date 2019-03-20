@@ -20,13 +20,14 @@ off_t fdSize(int fd)
 
 void tail(const char* filename, tailfn callback)
 {
+    struct Config* config = configInstance();
     int fd = open(filename, O_RDONLY);
     if (fd < 0)
     {
         fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
         return;
     }
-    off_t pos = config.history ? 0 : fdSize(fd);
+    off_t pos = config->history ? 0 : fdSize(fd);
     if(pos == (off_t)-1)
     {
         fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
@@ -46,7 +47,7 @@ void tail(const char* filename, tailfn callback)
         ssize_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)
         {
-            if(!config.follow)
+            if(!config->follow)
                 break;
             sleep(1);
         }
@@ -60,7 +61,7 @@ void tail(const char* filename, tailfn callback)
             else if (line[here] == '\n')
             {
                 line[here] = '\0';
-                struct String string = {
+                struct SimpleString string = {
                     .data = &line[last],
                     .length = here - last - 1,
                 };

@@ -5,7 +5,7 @@
 
 #include <stddef.h>
 
-typedef void (*tailfn)(struct String line);
+typedef void (*tailfn)(struct SimpleString line);
 
 void tail(const char* filename, tailfn callback);
 

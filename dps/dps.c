@@ -8,8 +8,9 @@
 #include <stdio.h>
 
 
-void tellme(struct String line)
+void tellme(struct SimpleString line)
 {
+    struct Config* config = configInstance();
     static int64_t lineno = 0;
     lineno++;
     // empty line
@@ -32,15 +33,16 @@ void tellme(struct String line)
         line.length - 27
     );
     dateseconds = parseDate(datestring);
-    if(dateseconds < config.since)
+    if(dateseconds < config->since)
     {
         return;
     }
 
-    if(battle.m_start > 0 && battle.m_end < dateseconds)
+    struct Battle* battle = battleInstance();
+    if(battle->m_start > 0 && battle->m_end < dateseconds)
     {
-        battle.report(&battle);
-        battle.reset(&battle);
+        battle->report(battle);
+        battle->reset(battle);
     }
 
     struct Action action;
@@ -55,7 +57,7 @@ void tellme(struct String line)
         }
         case MELEE:
         {
-            if(config.verbosity > 0)
+            if(config->verbosity > 0)
             {
                 printf("Melee: %s:\n", message.data);
                 printf("      ");
@@ -65,15 +67,15 @@ void tellme(struct String line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle.m_start == 0)
-                battle.start(&battle, dateseconds);
-            battle.melee(&battle, dateseconds, &action);
-            battle.m_end = dateseconds + config.keepAlive;
+            if(battle->m_start == 0)
+                battle->start(battle, dateseconds);
+            battle->melee(battle, dateseconds, &action);
+            battle->m_end = dateseconds + config->keepAlive;
             break;
         }
         case MAGIC:
         {
-            if(config.verbosity > 0)
+            if(config->verbosity > 0)
             {
                 printf("Magic: %s:\n", message.data);
                 printf("      ");
@@ -82,15 +84,15 @@ void tellme(struct String line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle.m_start == 0)
-                battle.start(&battle, dateseconds);
-            battle.m_end = dateseconds + config.keepAlive;
-            battle.m_totalDamage += action.damage;
+            if(battle->m_start == 0)
+                battle->start(battle, dateseconds);
+            battle->m_end = dateseconds + config->keepAlive;
+            battle->m_totalDamage += action.damage;
             break;
         }
         case HEAL:
         {
-            if(config.verbosity > 0)
+            if(config->verbosity > 0)
             {
                 printf("Heal : %s:\n", message.data);
                 printf("      ");
@@ -99,16 +101,16 @@ void tellme(struct String line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle.m_start == 0)
-                battle.start(&battle, dateseconds);
-            battle.m_end = dateseconds + config.keepAlive;
-            battle.m_totalHeals += action.damage;
+            if(battle->m_start == 0)
+                battle->start(battle, dateseconds);
+            battle->m_end = dateseconds + config->keepAlive;
+            battle->m_totalHeals += action.damage;
             break;
         }
         case UNKNOWN:
         default:
         {
-            if(config.verbosity > 1)
+            if(config->verbosity > 1)
                 fprintf(stderr, "[%zd]:[%"PRId64"] %s\n", lineno, dateseconds, message.data);
             break;
         }
@@ -128,16 +130,7 @@ From Python
 #endif
 int main(int argc, char **argv)
 {
-    {
-        config.follow = false;
-        config.history = false;
-        config.me = (struct SimpleString)SIMPLE_STRING("You");
-        config.logfile = NULL;
-        config.since = 0;
-        config.keepAlive = 10;
-        config.verbosity = 0;
-        Battle_ctor(&battle);
-    }
+    struct Config* config = configInstance();
     struct String opt_me = CONST_STRING("--me");
     struct String opt_log = CONST_STRING("--log");
     struct String opt_history = CONST_STRING("--history");
@@ -153,7 +146,7 @@ int main(int argc, char **argv)
         if(opt_me.op_equal(&opt_me, &arg))
         {
             i++;
-            config.me = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            config->me = (struct SimpleString)SIMPLE_STRING(argv[i]);
         }
         if(opt_log.op_equal(&opt_log, &arg))
         {
@@ -162,18 +155,18 @@ int main(int argc, char **argv)
         }
         if(opt_history.op_equal(&opt_history, &arg))
         {
-            config.history = true;
+            config->history = true;
         }
         if(opt_follow.op_equal(&opt_follow, &arg))
         {
-            config.follow = true;
+            config->follow = true;
         }
         if(opt_since.op_equal(&opt_since, &arg))
         {
             i++;
             struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
-            config.since = parseDate(datestring);
-            if(config.since < 0)
+            config->since = parseDate(datestring);
+            if(config->since < 0)
             {
                 fprintf(stderr, "Error parsing --since string '%s'\n", argv[i]);
             }
@@ -183,8 +176,8 @@ int main(int argc, char **argv)
             i++;
             struct String keepalive;
             String_ctorHold(&keepalive, argv[i], strlen(argv[i]));
-            config.keepAlive = keepalive.toInt(&keepalive);
-            if(config.keepAlive < 0)
+            config->keepAlive = keepalive.toInt(&keepalive);
+            if(config->keepAlive < 0)
             {
                 fprintf(stderr, "Error parsing --keepalive string '%s'\n", argv[i]);
             }
@@ -196,8 +189,5 @@ int main(int argc, char **argv)
         return 1;
     }
     tail(logfile, &tellme);
-    {
-        battle.dtor(&battle);
-    }
     return 0;
 }

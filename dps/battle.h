@@ -45,6 +45,6 @@ struct Battle
     void (*dtor)(struct Battle* this);
 };
 
-extern struct Battle battle;
+struct Battle* battleInstance();
 
 #endif // BATTLE_H

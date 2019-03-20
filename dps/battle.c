@@ -5,7 +5,17 @@
 #include <stdlib.h>
 
 // Glocal Battle object
-struct Battle battle;
+struct Battle* battleInstance()
+{
+    static struct Battle battle;
+    static bool initialized = false;
+    if(!initialized)
+    {
+        Battle_ctor(&battle);
+        initialized = true;
+    }
+    return &battle;
+}
 
 // Member function declarations
 // Fight
@@ -71,12 +81,12 @@ void Fight_dtor(struct Fight *this)
 void Battle_clearPCs(struct Battle *this)
 {
     // Clear out all of the Strings
-    for(size_t i = 0; i < battle.m_pc.size; i++)
+    for(size_t i = 0; i < this->m_pc.size; i++)
     {
-        struct String pc = *(struct String*)battle.m_pc.at(&battle.m_pc, i);
+        struct String pc = *(struct String*)this->m_pc.at(&this->m_pc, i);
         pc.dtor(&pc);
     }
-    battle.m_pc.clear(&battle.m_pc);
+    this->m_pc.clear(&this->m_pc);
 }
 
 void Battle_dtor(struct Battle *this)
@@ -90,7 +100,7 @@ void Battle_dtor(struct Battle *this)
 void Battle_start(struct Battle* this, int64_t now)
 {
     this->m_start = now;
-    this->m_end = now + config.keepAlive;
+    this->m_end = now + configInstance()->keepAlive;
 }
 
 void Battle_reset(struct Battle* this)
@@ -147,7 +157,7 @@ int64_t Battle_getPCIndex(struct Battle* this, struct String* pc)
         return id;
     struct SimpleString* findme = NULL;
     if(Battle_isMe(pc))
-        findme = &config.me;
+        findme = &(configInstance()->me);
     else
         findme = pc->to_SimpleString(pc);
     for(size_t i = 0; i < this->m_pc.size; i++)
