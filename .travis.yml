@@ -1,0 +1,15 @@
+language: c
+
+os:
+  - linux
+  - osx
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  - cmake -H./dps -B./dps/build
+  - cmake --build ./dps/build
+  - cmake --build ./dps/build --target test
+
