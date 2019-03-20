@@ -1,12 +1,10 @@
 language: c
 
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+    - os: osx
 
 script:
   - cmake -H./dps -B./dps/build
