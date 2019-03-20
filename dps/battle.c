@@ -40,12 +40,17 @@ struct Fight* Fight_new()
 
 void Battle_ctor(struct Battle* this)
 {
-    *this = (struct Battle){0};
-    this->start = &Battle_start;
-    this->reset = &Battle_reset;
-    this->report = &Battle_report;
-    this->melee = &Battle_melee;
-    this->dtor = &Battle_dtor;
+    *this = (struct Battle) {
+        .m_start = 0,
+        .m_end = 0,
+        .m_totalDamage = 0,
+        .m_totalHeals = 0,
+        .start = &Battle_start,
+        .reset = &Battle_reset,
+        .report = &Battle_report,
+        .melee = &Battle_melee,
+        .dtor = &Battle_dtor
+    };
     Array_ctor(&this->m_pc, sizeof(struct String));
     Array_ctor(&this->m_fight, sizeof(struct Fight));
 }
@@ -100,14 +105,14 @@ void Battle_reset(struct Battle* this)
 
 void Battle_report(struct Battle* this)
 {
-    printf("Battle report! %jd -> %jd = %jds\n", this->m_start, this->m_end, this->m_end - this->m_start);
-    printf("Total Heals: %jd\n", this->m_totalHeals);
+    printf("Battle report! %"PRId64" -> %"PRId64" = %"PRId64"s\n", this->m_start, this->m_end, this->m_end - this->m_start);
+    printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
     for(size_t i = 0; i < this->m_fight.size; i++)
     {
         struct Fight* fight = this->m_fight.at(&this->m_fight, i);
         struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
         struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
-        printf("Fight: %.*s -> %.*s, hits %jd, damage %jd, %jds\n",
+        printf("Fight: %.*s -> %.*s, hits %"PRId64", damage %"PRId64", %"PRId64"s\n",
             (int)source->length, source->data,
             (int)target->length, target->data,
             fight->hits,

@@ -35,7 +35,7 @@ void tellme(struct String line)
 
     if(line.length < 27 || !(line.data[0] == '[' && line.data[25] == ']'))
     {
-        fprintf(stderr, "[%jd] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
+        fprintf(stderr, "[%"PRId64"] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
         return;
     }
     struct SimpleString datestring = {
@@ -78,7 +78,7 @@ void tellme(struct String line)
                 printf(" %.*s", (int)action.source.length, action.source.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
                 printf("|%.*s", (int)action.target.length, action.target.data);
-                printf("|%jd", action.damage);
+                printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
             if(battle.m_start == 0)
@@ -95,7 +95,7 @@ void tellme(struct String line)
                 printf("      ");
                 printf(" %.*s", (int)action.target.length, action.target.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
-                printf("|%jd", action.damage);
+                printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
             if(battle.m_start == 0)
@@ -112,7 +112,7 @@ void tellme(struct String line)
                 printf("      ");
                 printf(" %.*s", (int)action.target.length, action.target.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
-                printf("|%jd", action.damage);
+                printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
             if(battle.m_start == 0)
@@ -125,7 +125,7 @@ void tellme(struct String line)
         default:
         {
             if(config.verbosity > 1)
-                fprintf(stderr, "[%zd]:[%jd] %s\n", lineno, dateseconds, message.data);
+                fprintf(stderr, "[%zd]:[%"PRId64"] %s\n", lineno, dateseconds, message.data);
             break;
         }
     }

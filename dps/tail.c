@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-ssize_t fdSize(int fd)
+off_t fdSize(int fd)
 {
     struct stat buf;
     int err = fstat(fd, &buf);
@@ -26,8 +26,8 @@ void tail(const char* filename, tailfn callback)
         fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
         return;
     }
-    size_t pos = config.history ? 0 : fdSize(fd);
-    if(pos < 0)
+    off_t pos = config.history ? 0 : fdSize(fd);
+    if(pos == (off_t)-1)
     {
         fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
         return;

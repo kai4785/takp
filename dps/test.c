@@ -37,7 +37,7 @@ int _dateEquals(/*const*/ char* date, int64_t expected, const char* file, int li
     {
         fprintf(stderr, "Failed to parse date: %s:%d\n", file, line);
         fprintf(stderr, "   date:  [%d]%.*s\n", (int)dateString.length, (int)dateString.length, dateString.data);
-        fprintf(stderr, "   value: %jd != %jd\n", got, expected);
+        fprintf(stderr, "   value: %"PRId64" != %"PRId64"\n", got, expected);
         errors++;
     }
     return errors;
@@ -104,7 +104,7 @@ int _validateAction(struct Action action, const char* file, int line)
     }
     if(action.damage != newAction.damage)
     {
-        fprintf(stderr, "[%s:%d]: Action damage mismatch: %jd != %jd\n",
+        fprintf(stderr, "[%s:%d]: Action damage mismatch: %"PRId64" != %"PRId64"\n",
             file, line,
             action.damage,
             newAction.damage);

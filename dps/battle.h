@@ -28,7 +28,6 @@ struct Battle* Battle_new();
 struct Battle
 {
 #if 0
-    .melee = defaultdict(dict)
     .deaths = defaultdict(dict)
     .cripps = defaultdict(int)
     .crits = defaultdict(int)
