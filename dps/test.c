@@ -8,19 +8,6 @@
 #include <string.h>
 #include <stdio.h>
 
-// TODO: Really?
- __attribute((constructor)) void configInstance(void)
-{
-    config.follow = false;
-    config.history = true;
-    config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
-    config.logfile = NULL;
-    config.since = 0;
-    config.keepAlive = 10;
-    config.verbosity = 0;
-    Battle_ctor(&battle);
-}
-
 #define dateEquals(_x, _y) _dateEquals(_x, _y, __FILE__, __LINE__)
 
 // TODO: Why can't this be const?
@@ -246,10 +233,23 @@ int testArray()
 
 int main()
 {
+    {
+        config.follow = false;
+        config.history = true;
+        config.me = (struct SimpleString)SIMPLE_STRING("Meriadoc");
+        config.logfile = NULL;
+        config.since = 0;
+        config.keepAlive = 10;
+        config.verbosity = 0;
+        Battle_ctor(&battle);
+    }
     int errors = 0;
     errors += testDates();
     errors += testActions();
     errors += testArray();
     printf("Tests failed: %d\n", errors);
+    {
+        battle.dtor(&battle);
+    }
     return errors;
 }

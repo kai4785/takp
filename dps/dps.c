@@ -7,22 +7,6 @@
 #include <string.h>
 #include <stdio.h>
 
-// TODO: Really?
- __attribute((constructor)) void globalConstructor(void)
-{
-    config.follow = false;
-    config.history = false;
-    config.me = (struct SimpleString)SIMPLE_STRING("You");
-    config.logfile = NULL;
-    config.since = 0;
-    config.keepAlive = 10;
-    config.verbosity = 0;
-    Battle_ctor(&battle);
-}
- __attribute((destructor)) void globalDestructor(void)
-{
-    battle.dtor(&battle);
-}
 
 void tellme(struct String line)
 {
@@ -144,6 +128,16 @@ From Python
 #endif
 int main(int argc, char **argv)
 {
+    {
+        config.follow = false;
+        config.history = false;
+        config.me = (struct SimpleString)SIMPLE_STRING("You");
+        config.logfile = NULL;
+        config.since = 0;
+        config.keepAlive = 10;
+        config.verbosity = 0;
+        Battle_ctor(&battle);
+    }
     struct String opt_me = CONST_STRING("--me");
     struct String opt_log = CONST_STRING("--log");
     struct String opt_history = CONST_STRING("--history");
@@ -202,5 +196,8 @@ int main(int argc, char **argv)
         return 1;
     }
     tail(logfile, &tellme);
+    {
+        battle.dtor(&battle);
+    }
     return 0;
 }
