@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 3.10)
 
 option(ENABLE_PROFILING "Enable profiling" Off)
+option(ENABLE_CODE_COVERAGE "Enable code coverage" Off)
+
+enable_testing()
 
 set(CMAKE_C_STANDARD 11)
+
+project(eqdps VERSION 0.1.0)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 if(ENABLE_PROFILING)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
 endif()
+if(ENABLE_CODE_COVERAGE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+endif()
 
-project(eqdps VERSION 0.1.0)
 add_library(enchilada STATIC
     array.c
     array.h
@@ -28,21 +36,24 @@ add_library(enchilada STATIC
     utility.h
 )
 
-add_executable(dps
-    dps.c
-)
+add_executable(dps dps.c)
+target_link_libraries(dps PRIVATE enchilada)
 
-target_link_libraries(dps
-    PRIVATE
-        enchilada
-)
+add_executable(dps-test test.c)
+target_link_libraries(dps-test PRIVATE enchilada)
+#add_test(dps-test dps-test)
 
-add_executable(dps-test
-    test.c
+set(UNITS
+#    array
+#    action
+#    battle
+#    config
+#    date
+#    tail
+    utility
 )
-
-target_link_libraries(dps-test
-    PRIVATE
-        enchilada
-)
-
+foreach(UNIT ${UNITS})
+    add_executable(test-${UNIT} test-${UNIT}.c ${UNIT}.h test.h)
+    target_link_libraries(test-${UNIT} PRIVATE enchilada)
+    add_test(test-${UNIT} test-${UNIT})
+endforeach()

@@ -1,8 +1,6 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include "array.h"
-
 #include <stddef.h>
 #include <stdbool.h>
 #include <inttypes.h>

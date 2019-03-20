@@ -56,9 +56,8 @@ void tail(const char* filename, tailfn callback)
             if (line[here] == '\r')
             {
                 line[here] = '\0';
-                continue;
             }
-            if (line[here] == '\n')
+            else if (line[here] == '\n')
             {
                 line[here] = '\0';
                 struct String string = {

@@ -1,4 +1,5 @@
 #include "action.h"
+#include "array.h"
 #include "utility.h"
 
 #include <string.h>
