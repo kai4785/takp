@@ -100,14 +100,14 @@ void Battle_reset(struct Battle* this)
 
 void Battle_report(struct Battle* this)
 {
-    printf("Battle report! %ld -> %ld = %lds\n", this->m_start, this->m_end, this->m_end - this->m_start);
-    printf("Total Heals: %ld\n", this->m_totalHeals);
+    printf("Battle report! %jd -> %jd = %jds\n", this->m_start, this->m_end, this->m_end - this->m_start);
+    printf("Total Heals: %jd\n", this->m_totalHeals);
     for(size_t i = 0; i < this->m_fight.size; i++)
     {
         struct Fight* fight = this->m_fight.at(&this->m_fight, i);
         struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
         struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
-        printf("Fight: %.*s -> %.*s, hits %ld, damage %ld, %lds\n",
+        printf("Fight: %.*s -> %.*s, hits %jd, damage %jd, %jds\n",
             (int)source->length, source->data,
             (int)target->length, target->data,
             fight->hits,
