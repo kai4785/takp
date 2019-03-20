@@ -9,16 +9,10 @@ script:
 - cmake --build ./dps/build
 - cmake --build ./dps/build --target test
 - find ./dps/build
-before_deploy:
-- ls -lh ./dps/build/dps
 deploy:
   provider: releases
   api_key:
-    secure: M37eTfx8q0KEWjZjy87nJEtAES5WDKatPnfBbbv5ZoNFsb99wKH0M8nMigEzT6qG6+pBXDbIFav10xkQJui9VlAk8f2PDu9IXBaIIpnkvGTZG/qiS3YBtGfiesH2vdCiSukTMIvPbRegJQ5Q3gkNQHY8Mn/BrPOj0RZ0258ndy7c2f6j0Y+/GTfD0maS+o252JxV18jPl0md872gxMmS4Rv3UnLUcH79B5OSqcSH08rhixPVCNN4snh4qA4iD8YTtVrFNiRaqkYh5r6KF2/A5BI+pF7cf6H4U9iVaAJ8idVeaCKJqVqQsKJcFmJzoksliOajiyHmOzOFPjDghSLFbzgct4yjC6ciVGNROy1UMo1zZAkwiV3DuPwvzkKBWRjXYWTHjit+NFe5gB3jWUEIyXOBigDqkhEij+SlpCPK4XBj7eFUX7+4xqcwX1ssjhIz/I+FFocduub8WLwUlLScsaeOvoUQZG5uJo45RE/gQprkGNcvp2gFabnPDvbNcLhw/VGS6H1XFVUb5yzhmzc4UtJ5rRHOfW5EpSS9VZGDXgN27XzTq5rtZSVaTOLCTGI+FtpK8N5BYm2qLj0egWkSGxDzELUHoUEpX5u0XhFPsdMp09V4VLnOqAQpcYqrg4dyQeBaDd+gXodBH3+yEjDzeE4Hol7LkNdrnQsA5fzQHpY=
-  file:
-  - 'dps/build/dps'
-  skip_cleanup: true
+    secure: E9aWOk83eEB999G7TYmKWG+v2bIZxv6KqMXKXvZE+r54ywd9ng/Etf8EC7s+o7s4/5dDWASbWN1r/dWY4ANY0aYjDKcWBgU03y/7EhkICOVF1PPdUBAF58p+0Bbo8C3M/1iE8kWn50ZL6D2GB9wb+19POdMguMtp5WCflkOiK5bXqQ6UTkkynDTHIp6DNxr/RTw2efzpl5tu2pwMm/34+ArBosi7LnM8veZmlDLDW7lqEHWnSHk73bEXzlGdxBfmSoeqbLjYMs+weY2yDR+RJmcaQTyAQlLjnaivOQa+5PySRPrzosgBBHYfQxFBVWrnql3qPUXNUWXkKHJdj2UIVnVgNTwIHqo0DqsdEL6ZXJX2z2cJqfGK2bfAl9fiv4GOxn3LPm/CvXmFLAv6Lvg5Yrn/kOCHfAe5OIkJ6z/SWBKZIpEm47ItGRbNSLSaV0XFWRJixi+iDrlZkTCrsDvahAwywlkGFJRaP10ntYE6vwDSvCBtZuajPZMpdKHIARVvg+BA8Etc8zsm8mIY50gTpDHJwJsEbNsyEiCKeg6vaLHSRKhe5HgBm7S+qrvjBau0ZkJO0QHcoc1AdSQURZja39hVGIxnvOEUgGSsKJfqjPh41U8LRmyYko2EeCwQYHJPxm+POnQzeZOByu2wiGblIhfIehRjDB+mBhup5h8B030=
+  file: dps/build/dps
   on:
     repo: kai4785/takp
-after_deploy:
-- ls -lh ./dps/build/dps
