@@ -1,13 +1,18 @@
 language: c
-
 matrix:
   include:
-    - os: linux
-      dist: xenial
-    - os: osx
-
+  - os: linux
+    dist: xenial
+  - os: osx
 script:
-  - cmake -H./dps -B./dps/build
-  - cmake --build ./dps/build
-  - cmake --build ./dps/build --target test
-
+- cmake -H./dps -B./dps/build
+- cmake --build ./dps/build
+- cmake --build ./dps/build --target test
+- find ./dps/build
+deploy:
+  provider: releases
+  api_key:
+    secure: M37eTfx8q0KEWjZjy87nJEtAES5WDKatPnfBbbv5ZoNFsb99wKH0M8nMigEzT6qG6+pBXDbIFav10xkQJui9VlAk8f2PDu9IXBaIIpnkvGTZG/qiS3YBtGfiesH2vdCiSukTMIvPbRegJQ5Q3gkNQHY8Mn/BrPOj0RZ0258ndy7c2f6j0Y+/GTfD0maS+o252JxV18jPl0md872gxMmS4Rv3UnLUcH79B5OSqcSH08rhixPVCNN4snh4qA4iD8YTtVrFNiRaqkYh5r6KF2/A5BI+pF7cf6H4U9iVaAJ8idVeaCKJqVqQsKJcFmJzoksliOajiyHmOzOFPjDghSLFbzgct4yjC6ciVGNROy1UMo1zZAkwiV3DuPwvzkKBWRjXYWTHjit+NFe5gB3jWUEIyXOBigDqkhEij+SlpCPK4XBj7eFUX7+4xqcwX1ssjhIz/I+FFocduub8WLwUlLScsaeOvoUQZG5uJo45RE/gQprkGNcvp2gFabnPDvbNcLhw/VGS6H1XFVUb5yzhmzc4UtJ5rRHOfW5EpSS9VZGDXgN27XzTq5rtZSVaTOLCTGI+FtpK8N5BYm2qLj0egWkSGxDzELUHoUEpX5u0XhFPsdMp09V4VLnOqAQpcYqrg4dyQeBaDd+gXodBH3+yEjDzeE4Hol7LkNdrnQsA5fzQHpY=
+  file: ''
+  on:
+    repo: kai4785/takp
