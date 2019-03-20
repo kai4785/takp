@@ -27,7 +27,7 @@ takp_prefix="$HOME/.takp"
 wine_version="2.2-staging"
 winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
 
-opts=(takp_prefix wine_version winetricks_verbs)
+opts=(takp_prefix wine_version winetricks_verbs wine_base)
 commands=(install run install_and_run winetricks wine)
 
 echo_opts()
@@ -74,8 +74,8 @@ steam_photon_dir="${steam_apps_dir}/common/Proton 3.7/dist"
 steam_wine_prefix="${steam_photon_dir}/share/default_pfx"
 
 # Depends on parsed arguments
-wine_prefix="${takp_prefix}/wineprefix/${wine_version}"
 wine_base="${takp_prefix}/wineversion/${wine_version}"
+wine_prefix="${takp_prefix}/wineprefix/${wine_version}"
 wine_bin="${wine_base}/bin/wine"
 cache_base="${takp_prefix}/cache"
 log_base="${takp_prefix}/logs"
@@ -119,6 +119,8 @@ install()
             rsync --exclude=default_pfx --exclude="dinput.dll.*" -av "${steam_photon_dir}"/ "${wine_base}"/
             #rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
         fi
+    elif [ "${wine_version}" = "system" ]; then
+        echo "system wine"
     else
         if [ ! -e "${wine_file}" ]; then
             curl -L "${wine_url}" -o "${wine_file}"
@@ -283,7 +285,7 @@ move_windows()
     done
 }
 
-if [ -z "$@" ]; then
+if [ ${#@} -eq 0 ]; then
     print_help
 fi
 $@

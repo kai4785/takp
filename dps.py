@@ -242,7 +242,7 @@ class Battle(object):
         header_format = '{:<35s} {:<30s} {:>4s} {:>4s} {:>5s} {:>6s} {:>6s} {:>6s}'
         fight_format  = '{:<35s} {:<30s} {:>4d} {:>4d} {:>5.2f} {:>6d} {:>6.2f} {:>6.2f}'
         break_str = '-------------------------------------------------------------------------------------------------------'
-        print(header_format.format('(N)PC', 'Target', 'Sec', 'Hits', 'h/s', 'Damage', 'd/a', 'd/s'))
+        print(header_format.format('(N)PC', 'Target', 'Sec', 'Hits', 'h/s', 'Damage', 'd/h', 'd/s'))
         print(break_str)
         for _attacker, targets in self._melee.items():
             attacker = _attacker
@@ -274,11 +274,16 @@ class Battle(object):
         print('Deaths:')
         print('{:<35s} {:<30s} {:<6s}'.format('Target', 'Slayer', 'Deaths'))
         print(break_str)
+        total_times = 0
         for target, slayers in self._deaths.items():
             for slayer, times in slayers.items():
                 print('{:<35s} {:<30s} {:<6d}'.format(target, slayer, times))
                 print(break_str)
+                total_times += times
+        print('{:<35s} {:<30s} {:<6d}'.format("Total", "", total_times))
+        print(break_str)
         print()
+        sys.stdout.flush()
 
 
 class Process(object):
@@ -290,24 +295,24 @@ class Process(object):
         self.you = you
         self.since = since
         self.pc_regexp = '|'.join(self.pc_list)
-        self.melee_verbs = "smash|smashes|hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs"
-        self.melee_reg = re.compile(fr'^({self.pc_regexp}) ({self.melee_verbs}) ({self.pc_regexp}) for ([0-9]+) points of damage\.')
+        self.melee_verbs = "smash|smashes|hit|slash|claw|claws|crush|pierce|kick|bash|maul|gore|gores|slice|slices|slashes|crushes|hits|punch|punches|kicks|bashes|bites|pierces|mauls|backstab|backstabs|rends"
+        self.melee_reg = re.compile(fr'^({self.pc_regexp}) ({self.melee_verbs}) ({self.pc_regexp}) for ([0-9]+) points? of damage\.')
         self.cripp_re = re.compile(fr'^({self.pc_regexp}) lands a Crippling Blow\!\(([0-9]+)\)')
         self.crit_re = re.compile(fr'^({self.pc_regexp}) Scores a critical hit\!\(([0-9]+)\)')
-        self.magic_re = re.compile(fr'({self.pc_regexp}) was (hit by non-melee) for ([0-9]+) points of damage\.')
+        self.magic_re = re.compile(fr'({self.pc_regexp}) was (hit by non-melee) for ([0-9]+) points? of damage\.')
         self.death_re1 = re.compile(fr'({self.pc_regexp}) have slain ({self.pc_regexp})!')
         self.death_re2 = re.compile(fr'({self.pc_regexp}) (has|have) been slain by ({self.pc_regexp})!')
         self.death_re3 = re.compile(fr'({self.pc_regexp}) died\.')
-        self.heal_re = re.compile(f'(You) have been (healed) for ([0-9]+) points of damage\.')
+        self.heal_re = re.compile(f'(You) have been (healed) for ([0-9]+) points? of damage\.')
         self.keep_alive = keep_alive
 
     def __call__(self, line):
         '''
         Melee messages are:
-            'attacker' 'verb' 'target' for 'xx' points of damage.
+            'attacker' 'verb' 'target' for 'xx' points? of damage.
 
         Damage Shield and Proc messages are:
-            'target' was hit by non-melee for 'xx' points of damage.
+            'target' was hit by non-melee for 'xx' points? of damage.
         '''
         # Skip blank or mal-formed lines
         try:
