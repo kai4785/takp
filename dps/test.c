@@ -187,34 +187,34 @@ int testArray()
     int errors = 0;
     {
         struct Array array;
-        Array_ctor(&array, sizeof(int64_t));
+        Array_ctor(&array, sizeof(unsigned long));
 
         array.resize(&array, 10);
         __test(array.size, 0UL);
         __test(array.capacity, 10UL);
-        __test(array.datumSize, sizeof(int64_t));
-        int64_t newValue = 0;
+        __test(array.datumSize, sizeof(unsigned long));
+        unsigned long newValue = 0;
         array.push(&array, &newValue);
         newValue++;
         array.push(&array, &newValue);
         newValue++;
         __test(array.size, 2UL);
         __test(array.capacity, 10UL);
-        __test(*(int64_t*)array.at(&array, 0), 0UL);
-        __test(*(int64_t*)array.at(&array, 1), 1UL);
+        __test(*(unsigned long*)array.at(&array, 0), 0UL);
+        __test(*(unsigned long*)array.at(&array, 1), 1UL);
         for(; newValue < 10; newValue++)
         {
             array.push(&array, &newValue);
         }
         __test(array.size, 10UL);
         __test(array.capacity, 10UL);
-        __test(*(int64_t*)array.at(&array, 8), 8UL);
-        __test(*(int64_t*)array.at(&array, 9), 9UL);
+        __test(*(unsigned long*)array.at(&array, 8), 8UL);
+        __test(*(unsigned long*)array.at(&array, 9), 9UL);
         array.push(&array, &newValue);
         newValue++;
         __test(array.size, 11UL);
         __test(array.capacity, 20UL);
-        __test(*(int64_t*)array.at(&array, 10), 10UL);
+        __test(*(unsigned long*)array.at(&array, 10), 10UL);
         for(; newValue < 1024; newValue++)
         {
             array.push(&array, &newValue);

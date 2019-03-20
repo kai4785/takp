@@ -42,7 +42,7 @@ void tail(const char* filename, tailfn callback)
         if(newPos > fileSize)
         {
             pos = fileSize;
-            fprintf(stderr, "File truncation detected. New size: %zd\n", pos);
+            fprintf(stderr, "File truncation detected. New size: %"PRId64"\n", pos);
         }
         ssize_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)

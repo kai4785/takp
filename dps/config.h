@@ -13,7 +13,7 @@ struct Config
     int verbosity;
     struct SimpleString me;
     const char* logfile;
-    uint64_t since;
+    int64_t since;
     int keepAlive;
 };
 

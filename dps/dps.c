@@ -111,7 +111,7 @@ void tellme(struct SimpleString line)
         default:
         {
             if(config->verbosity > 1)
-                fprintf(stderr, "[%zd]:[%"PRId64"] %s\n", lineno, dateseconds, message.data);
+                fprintf(stderr, "[%"PRId64"]:[%"PRId64"] %s\n", lineno, dateseconds, message.data);
             break;
         }
     }
