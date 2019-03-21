@@ -32,7 +32,7 @@ void print_String(struct SimpleString value)
 
 const char* testFileName = "test-tail.txt";
 
-const struct SimpleString lines[] = {
+struct SimpleString lines[] = {
     SIMPLE_STRING("line0"),
     SIMPLE_STRING("line1"),
     SIMPLE_STRING("line2"),
