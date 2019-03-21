@@ -1,10 +1,10 @@
 #!/bin/bash
 
-source_dir=$(dirname $0)
-build_dir=${source_dir}/build
-
 set -x
 set -e
+
+source_dir=$(readlink -f $(dirname $0))
+build_dir=${source_dir}/build
 
 if [ -z "${TRAVIS}" ]; then
     echo "This script is only meant to run on travis-ci" >&2
