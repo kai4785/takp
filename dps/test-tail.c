@@ -33,31 +33,12 @@ void print_String(struct SimpleString value)
 const char* testFileName = "test-tail.txt";
 
 struct SimpleString lines[] = {
-    SIMPLE_STRING("line0"),
-    SIMPLE_STRING("line1"),
-    SIMPLE_STRING("line2"),
-    SIMPLE_STRING("line3"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:52 2019] Welcome to EverQuest!"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:52 2019] You have entered Velketor's Labyrinth."),
-	SIMPLE_STRING("[Thu Feb 14 10:42:52 2019] MESSAGE OF THE DAY: Welcome to The Al'Kabor Project.  Be sure to report any bugs you find to takproject.net bug section of the forum."),
-	SIMPLE_STRING("[Thu Feb 14 10:42:52 2019] Autojoining channels..."),
-	SIMPLE_STRING("[Thu Feb 14 10:42:52 2019] Channels: 1=Alliance(94)"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] Players on EverQuest:"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] ---------------------------"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] [51 Minstrel] Iarwain (Half Elf) <Black Sheep>"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] [60 Hierophant] Peregrin (Halfling) <Black Sheep>"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] [60 Warlord] Meriadoc (Halfling) <Black Sheep>"),
-	SIMPLE_STRING("[Thu Feb 14 10:42:54 2019] There are 3 players in Velketor's Labyrinth."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:03 2019] You invite Iarwain to join your group."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:03 2019] You have formed the group."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:03 2019] Iarwain has joined the group."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:07 2019] Iarwain's image shimmers."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:09 2019] It will take you about 30 seconds to prepare your camp."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:13 2019] It will take about 25 more seconds to prepare your camp."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:18 2019] It will take about 20 more seconds to prepare your camp."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:23 2019] It will take about 15 more seconds to prepare your camp."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:28 2019] It will take about 10 more seconds to prepare your camp."),
-	SIMPLE_STRING("[Thu Feb 14 10:43:33 2019] It will take about 5 more seconds to prepare your camp."),
+    { .data = "line0", .length = 5},
+    { .data = "line1", .length = 5},
+    { .data = "line2", .length = 5},
+    { .data = "line3", .length = 5},
+    { .data = "line4", .length = 5},
+    { .data = "line5", .length = 5},
 };
 
 int errors = 0;
@@ -81,14 +62,14 @@ void thething(struct SimpleString endofline)
     {
         off_t bytes = 0;
         bytes = write(fd, lines[i].data, lines[i].length);
-        if(!bytes)
+        if(bytes != lines[i].length)
         {
             fprintf(stderr, "Failed to write to file: [%d]%s\n", errno, testFileName);
             ++errors;
             return;
         }
         bytes = write(fd, endofline.data, endofline.length);
-        if(!bytes)
+        if(bytes != endofline.length)
         {
             fprintf(stderr, "Failed to write newlines to file: [%d]%s\n", errno, testFileName);
             ++errors;

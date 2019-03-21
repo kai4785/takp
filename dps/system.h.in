@@ -11,6 +11,7 @@
 #    define write _write
 #    define unlink _unlink
 #    define creat _creat
+#    define open _open
 #    define close _close
 #    ifdef HAVE_WINDOWS_H
 #        include <windows.h>
