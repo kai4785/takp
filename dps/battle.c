@@ -48,6 +48,12 @@ struct Fight* Fight_new()
     return this;
 }
 
+void Battle_String_dtor(void* string)
+{
+    struct String* deleteme = (struct String*) string;
+    deleteme->dtor(deleteme);
+}
+
 void Battle_ctor(struct Battle* this)
 {
     *this = (struct Battle) {
@@ -63,6 +69,7 @@ void Battle_ctor(struct Battle* this)
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
     Array_ctor(&this->m_fight, sizeof(struct Fight));
+    this->m_pc.datum_dtor = Battle_String_dtor;
 }
 
 struct Battle* Battle_new()
@@ -78,21 +85,9 @@ void Fight_dtor(struct Fight *this)
     (void)this;
 }
 
-void Battle_clearPCs(struct Battle *this)
-{
-    // Clear out all of the Strings
-    for(size_t i = 0; i < this->m_pc.size; i++)
-    {
-        struct String pc = *(struct String*)this->m_pc.at(&this->m_pc, i);
-        pc.dtor(&pc);
-    }
-    this->m_pc.clear(&this->m_pc);
-}
-
 void Battle_dtor(struct Battle *this)
 {
     // Clear out all of the Strings
-    Battle_clearPCs(this);
     this->m_pc.dtor(&this->m_pc);
     this->m_fight.dtor(&this->m_fight);
 }
@@ -109,7 +104,7 @@ void Battle_reset(struct Battle* this)
     this->m_end = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
-    Battle_clearPCs(this);
+    this->m_pc.clear(&this->m_pc);
     this->m_fight.clear(&this->m_fight);
 }
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -x
+set -e
 
 if [ -z "${TRAVIS}" ]; then
     echo "This script is only meant to run on travis-ci" >&2
@@ -23,5 +24,3 @@ cmake ${cmake_configure_args}
 cmake ${cmake_build_args}
 cmake ${cmake_build_args} --target test
 cmake ${cmake_build_args} --target package
-
-find ./dps/build

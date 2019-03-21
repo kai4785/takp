@@ -24,6 +24,7 @@ struct Array
     void (*clear)(struct Array* this);
     void (*push)(struct Array* this, void* datum);
     void* (*at)(struct Array* this, size_t pos);
+    void (*datum_dtor)(void* datum);
     void (*dtor)(struct Array* this);
 };
 

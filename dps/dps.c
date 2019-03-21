@@ -189,5 +189,7 @@ int main(int argc, char **argv)
         return 1;
     }
     tail(logfile, &tellme);
+    struct Battle* battle = battleInstance();
+    battle->dtor(battle);
     return 0;
 }
