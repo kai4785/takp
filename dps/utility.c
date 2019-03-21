@@ -67,20 +67,15 @@ void String_dup(struct String* this, char* data, size_t length)
     {
         free(this->data);
     }
-    this->data = strndup(data, length);
+    this->data = malloc(length);
+    this->data = strncpy(this->data, data, length);
     this->length = length;
     this->ownsPtr = true;
 }
 
 void String_copy(struct String* this, struct SimpleString* that)
 {
-    if(this->ownsPtr)
-    {
-        free(this->data);
-    }
-    this->data = strndup(that->data, that->length);
-    this->length = that->length;
-    this->ownsPtr = true;
+    this->dup(this, that->data, that->length);
 }
 
 bool String_startsWith(struct String* this, struct SimpleString* that)
