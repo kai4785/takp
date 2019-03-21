@@ -29,6 +29,6 @@ pushd ${build_dir}
 cmake ${cmake_configure_args}
 cmake ${cmake_build_args}
 ctest -C ${build_config} --output-on-failure
-cpack -G ZIP
+cmake ${cmake_build_args} --target package
 popd
 popd
