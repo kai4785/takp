@@ -51,23 +51,22 @@ void tail(const char* filename, tailfn callback)
             sleep(1);
         }
         size_t last = 0;
-        for (size_t here = last; here < readSize; here++)
+        for (size_t here = 0; here < readSize; here++)
         {
-            if (line[here] == '\r')
+            if(line[here] == '\r' || line[here] == '\n')
             {
-                line[here] = '\0';
-            }
-            else if (line[here] == '\n')
-            {
-                line[here] = '\0';
-                struct SimpleString string = {
-                    .data = &line[last],
-                    .length = here - last - 1,
-                };
-                callback(string);
+                if(last < here)
+                {
+                    struct SimpleString string = {
+                        .data = &line[last],
+                        .length = here - last,
+                    };
+                    callback(string);
+                }
                 last = here + 1;
             }
         }
         pos += last;
     }
+    close(fd);
 }

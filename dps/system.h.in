@@ -8,6 +8,11 @@
 #    include <io.h>
 #    define lseek _lseek
 #    define read _read
+#    define write _write
+#    define unlink _unlink
+#    define close _close
+#    define S_IREAD _SIREAD
+#    define S_IWRITE _SIWRITE
 #    ifdef HAVE_WINDOWS_H
 #        include <windows.h>
 #        define sleep(_seconds) Sleep(_seconds * 1000)

@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     struct String opt_since = CONST_STRING("--since");
     struct String opt_keepalive = CONST_STRING("--keepalive");
 
-    // Ew, manual parsing? Don't mess up, case i'll just barf.
+    // Ew, manual parsing? Don't mess up, cause I'll just barf.
     char* logfile = NULL;
     for(int i = 1; i < argc; i++)
     {

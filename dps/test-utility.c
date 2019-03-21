@@ -10,7 +10,7 @@ int cmp_String(struct String left, struct String right, bool equals)
 
 void print_String(struct String value)
 {
-    fprintf(stderr, "'%.*s'", (int)value.length, value.data);
+    fprintf(stderr, "(%zu)'%.*s'", value.length, (int)value.length, value.data);
 }
 
 #define test_eq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, true)

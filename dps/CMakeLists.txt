@@ -76,7 +76,7 @@ set(UNITS
 #    battle
 #    config
 #    date
-#    tail
+    tail
     utility
 )
 foreach(UNIT ${UNITS})
