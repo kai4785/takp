@@ -7,8 +7,6 @@ matrix:
   - os: windows
 script:
 - ./dps/travis-build.sh
-before_deploy:
-- ls -lh dps/build/dps
 deploy:
   provider: releases
   skip_cleanup: true
@@ -20,5 +18,3 @@ deploy:
     repo: kai4785/takp
     tags: true
   #draft: true
-after_deploy:
-- ls -lh dps/build/dps
