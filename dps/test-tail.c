@@ -60,11 +60,11 @@ int errors = 0;
 size_t lineno = 0;
 void tellme(struct SimpleString line)
 {
-    test_eq(line, lines[lineno]);
     if(configInstance()->verbosity > 5)
     {
-        printf("[lineno] %.*s\n", (int)line.length, line.data);
+        printf("[%zu](%zu) %.*s\n", lineno, line.length, (int)line.length, line.data);
     }
+    test_eq(line, lines[lineno]);
     lineno++;
 }
 
