@@ -3,7 +3,8 @@
 set -x
 set -e
 
-source_dir=$(readlink -f $(dirname $0))
+pushd $(dirname $0)
+source_dir=$(pwd)
 build_dir=${source_dir}/build
 
 if [ -z "${TRAVIS}" ]; then
@@ -28,5 +29,6 @@ pushd ${build_dir}
 cmake ${cmake_configure_args}
 cmake ${cmake_build_args}
 ctest -C ${build_config} --output-on-failure
-cpack
+cpack -G ZIP
+popd
 popd
