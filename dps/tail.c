@@ -36,14 +36,14 @@ void tail(const char* filename, tailfn callback)
     char line[64 * 1024] = {0};
     while(1)
     {
-        ssize_t fileSize = fdSize(fd);
-        ssize_t newPos = lseek(fd, pos, SEEK_SET);
+        off_t fileSize = fdSize(fd);
+        off_t newPos = lseek(fd, pos, SEEK_SET);
         if(newPos > fileSize)
         {
             pos = fileSize;
             fprintf(stderr, "File truncation detected. New size: %"PRId64"\n", pos);
         }
-        ssize_t readSize = read(fd, &line, sizeof(line));
+        off_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)
         {
             if(!config->follow)
