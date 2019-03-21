@@ -21,7 +21,7 @@ int cmp_String(struct SimpleString _left, struct SimpleString right, bool equals
 
 void print_String(struct SimpleString value)
 {
-    fprintf(stderr, "(%zu)'%.*s'", value.length, (int)value.length, value.data);
+    printf("(%zu)'%.*s'", value.length, (int)value.length, value.data);
 }
 
 #define test_eq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, true)
@@ -33,19 +33,38 @@ void print_String(struct SimpleString value)
 const char* testFileName = "test-tail.txt";
 
 struct SimpleString lines[] = {
-    { .data = "line0", .length = 5},
-    { .data = "line1", .length = 5},
-    { .data = "line2", .length = 5},
-    { .data = "line3", .length = 5},
-    { .data = "line4", .length = 5},
-    { .data = "line5", .length = 5},
+    { .data = "line0",  .length = 5},
+    { .data = "line1",  .length = 5},
+    { .data = "line2",  .length = 5},
+    { .data = "line3",  .length = 5},
+    { .data = "line4",  .length = 5},
+    { .data = "line5",  .length = 5},
+    { .data = "line6",  .length = 5},
+    { .data = "line7",  .length = 5},
+    { .data = "line8",  .length = 5},
+    { .data = "line9",  .length = 5},
+    { .data = "line10", .length = 6},
+    { .data = "line11", .length = 6},
+    { .data = "line12", .length = 6},
+    { .data = "line13", .length = 6},
+    { .data = "line14", .length = 6},
+    { .data = "line15", .length = 6},
+    { .data = "line16", .length = 6},
+    { .data = "line17", .length = 6},
+    { .data = "line18", .length = 6},
+    { .data = "line19", .length = 6},
+    { .data = "line20", .length = 6},
 };
 
 int errors = 0;
 size_t lineno = 0;
-void tellme(struct SimpleString _line)
+void tellme(struct SimpleString line)
 {
-    test_eq(_line, lines[lineno]);
+    test_eq(line, lines[lineno]);
+    if(configInstance()->verbosity > 5)
+    {
+        printf("[lineno] %.*s\n", (int)line.length, line.data);
+    }
     lineno++;
 }
 
@@ -54,24 +73,24 @@ void thething(struct SimpleString endofline)
     int fd = creat(testFileName, S_IREAD|S_IWRITE);
     if(fd < 0)
     {
-        fprintf(stderr, "Failed to open file: [%d]%s\n", errno, testFileName);
+        printf("Failed to open file: [%d]%s\n", errno, testFileName);
         ++errors;
         return;
     }
-    for(size_t i = 0; i < 5; i++)
+    for(size_t i = 0; i < sizeof(lines) / sizeof(*lines); i++)
     {
         off_t bytes = 0;
         bytes = write(fd, lines[i].data, lines[i].length);
         if(bytes != lines[i].length)
         {
-            fprintf(stderr, "Failed to write to file: [%d]%s\n", errno, testFileName);
+            printf("Failed to write to file: [%d]%s\n", errno, testFileName);
             ++errors;
             return;
         }
         bytes = write(fd, endofline.data, endofline.length);
         if(bytes != endofline.length)
         {
-            fprintf(stderr, "Failed to write newlines to file: [%d]%s\n", errno, testFileName);
+            printf("Failed to write newlines to file: [%d]%s\n", errno, testFileName);
             ++errors;
             return;
         }
@@ -85,6 +104,7 @@ int main()
 {
     struct Config* config = configInstance();
     config->history = true;
+    config->verbosity = 10;
     struct SimpleString cr = SIMPLE_STRING("\r");
     struct SimpleString lf = SIMPLE_STRING("\n");
     struct SimpleString crlf = SIMPLE_STRING("\r\n");

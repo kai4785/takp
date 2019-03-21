@@ -55,6 +55,11 @@ void tail(const char* filename, tailfn callback)
         {
             if(line[here] == '\r' || line[here] == '\n')
             {
+                if(config->verbosity > 5)
+                {
+                    printf("Found an end of line character '%02x', here:%zu, last:%zu\n",
+                        line[here], here, last);
+                }
                 if(last < here)
                 {
                     struct SimpleString string = {
