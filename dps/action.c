@@ -123,6 +123,7 @@ void parseVerb(struct Action* this, struct String message)
                 if(here.startsWith(&here, &nonMeleeVerb))
                 {
                     this->type = MAGIC;
+                    this->source = CONST_STRING("Spell/DS(Total)");
                     this->target.data = message.data;
                     this->target.length = i;
                     this->verb.data = message.data + i + nonMeleeVerb.length;

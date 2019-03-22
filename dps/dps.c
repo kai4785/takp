@@ -85,7 +85,7 @@ void tellme(struct SimpleString line)
             }
             if(battle->m_start == 0)
                 battle->start(battle, dateseconds);
-            battle->m_totalDamage += action.damage;
+            battle->magic(battle, dateseconds, &action);
             break;
         }
         case HEAL:

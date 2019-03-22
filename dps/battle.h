@@ -43,6 +43,7 @@ struct Battle
     void (*reset)(struct Battle* this);
     void (*report)(struct Battle* this);
     void (*melee)(struct Battle* this, int64_t now, struct Action* action);
+    void (*magic)(struct Battle* this, int64_t now, struct Action* action);
     void (*dtor)(struct Battle* this);
 };
 

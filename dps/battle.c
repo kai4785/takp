@@ -26,6 +26,7 @@ void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
 void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
+void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 
 // Constructors
 void Fight_ctor(struct Fight* this)
@@ -66,6 +67,7 @@ void Battle_ctor(struct Battle* this)
         .reset = &Battle_reset,
         .report = &Battle_report,
         .melee = &Battle_melee,
+        .magic = &Battle_magic,
         .dtor = &Battle_dtor
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
@@ -114,6 +116,8 @@ void Battle_reset(struct Battle* this)
 void Battle_report(struct Battle* this)
 {
     int64_t battleSeconds = this->m_end - this->m_start;
+    if(battleSeconds == 0)
+        battleSeconds = 1;
     printf("Battle report! %"PRId64"s [%"PRId64" : %"PRId64"]\n", battleSeconds, this->m_start, this->m_end);
     const char* break_str = "-------------------------------------------------------------------------------------------------------";
     const char* header_format = "%-35s %-30s %4s %4s %5s %6s %6s %6s\n";
@@ -251,4 +255,9 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     this->m_totalDamage += action->damage;
     this->m_end = now;
     this->m_expire = now + configInstance()->keepAlive;
+}
+
+void Battle_magic(struct Battle* this, int64_t now, struct Action* action)
+{
+    Battle_melee(this, now, action);
 }
