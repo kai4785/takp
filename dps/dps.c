@@ -39,7 +39,7 @@ void tellme(struct SimpleString line)
     }
 
     struct Battle* battle = battleInstance();
-    if(battle->m_start > 0 && battle->m_end < dateseconds)
+    if(battle->m_start > 0 && battle->m_expire < dateseconds)
     {
         battle->report(battle);
         battle->reset(battle);
@@ -70,7 +70,6 @@ void tellme(struct SimpleString line)
             if(battle->m_start == 0)
                 battle->start(battle, dateseconds);
             battle->melee(battle, dateseconds, &action);
-            battle->m_end = dateseconds + config->keepAlive;
             break;
         }
         case MAGIC:
@@ -86,7 +85,6 @@ void tellme(struct SimpleString line)
             }
             if(battle->m_start == 0)
                 battle->start(battle, dateseconds);
-            battle->m_end = dateseconds + config->keepAlive;
             battle->m_totalDamage += action.damage;
             break;
         }
@@ -103,7 +101,6 @@ void tellme(struct SimpleString line)
             }
             if(battle->m_start == 0)
                 battle->start(battle, dateseconds);
-            battle->m_end = dateseconds + config->keepAlive;
             battle->m_totalHeals += action.damage;
             break;
         }

@@ -36,6 +36,7 @@ struct Battle
     struct Array m_fight;
     int64_t m_start;
     int64_t m_end;
+    int64_t m_expire;
     int64_t m_totalDamage;
     int64_t m_totalHeals;
     void (*start)(struct Battle* this, int64_t now);

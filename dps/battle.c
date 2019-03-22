@@ -59,6 +59,7 @@ void Battle_ctor(struct Battle* this)
     *this = (struct Battle) {
         .m_start = 0,
         .m_end = 0,
+        .m_expire = 0,
         .m_totalDamage = 0,
         .m_totalHeals = 0,
         .start = &Battle_start,
@@ -95,13 +96,15 @@ void Battle_dtor(struct Battle *this)
 void Battle_start(struct Battle* this, int64_t now)
 {
     this->m_start = now;
-    this->m_end = now + configInstance()->keepAlive;
+    this->m_end = now;
+    this->m_expire = now + configInstance()->keepAlive;
 }
 
 void Battle_reset(struct Battle* this)
 {
     this->m_start = 0;
     this->m_end = 0;
+    this->m_expire = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
     this->m_pc.clear(&this->m_pc);
@@ -110,21 +113,61 @@ void Battle_reset(struct Battle* this)
 
 void Battle_report(struct Battle* this)
 {
-    printf("Battle report! %"PRId64" -> %"PRId64" = %"PRId64"s\n", this->m_start, this->m_end, this->m_end - this->m_start);
-    printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
-    for(size_t i = 0; i < this->m_fight.size; i++)
+    int64_t battleSeconds = this->m_end - this->m_start;
+    printf("Battle report! %"PRId64"s [%"PRId64" : %"PRId64"]\n", battleSeconds, this->m_start, this->m_end);
+    const char* break_str = "-------------------------------------------------------------------------------------------------------";
+    const char* header_format = "%-35s %-30s %4s %4s %5s %6s %6s %6s\n";
+    const char* fight_format = "%-35.*s %-30.*s %4d %4d %5.2f %6d %6.2f %6.2f\n";
+    printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
+    printf("%s\n", break_str);
+    for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
     {
-        struct Fight* fight = this->m_fight.at(&this->m_fight, i);
-        struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
-        struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
-        printf("Fight: %.*s -> %.*s, hits %"PRId64", damage %"PRId64", %"PRId64"s\n",
-            (int)source->length, source->data,
-            (int)target->length, target->data,
-            fight->hits,
-            fight->damage,
-            fight->end - fight->start
-        );
+        int targets = 0;
+        int64_t totalHits = 0;
+        int64_t totalDamage = 0;
+        for(size_t i = 0; i < this->m_fight.size; i++)
+        {
+            struct Fight* fight = this->m_fight.at(&this->m_fight, i);
+            if(fight->sourceId != pcId)
+                continue;
+            targets++;
+            struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
+            struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
+            int64_t seconds = fight->end - fight->start;
+            if(!seconds)
+                seconds = 1;
+            double dps = (double)fight->damage / (double)seconds;
+            double hps = (double)fight->hits / (double)seconds;
+            double dpa = (double)fight->damage / (double)fight->hits;
+            printf(fight_format,
+                (int)source->length, (targets == 1) ? source->data : "",
+                (int)target->length, target->data,
+                seconds,
+                fight->hits,
+                hps,
+                fight->damage,
+                dpa,
+                dps
+            );
+            totalHits += fight->hits;
+            totalDamage += fight->damage;
+        }
+        if(targets > 1)
+            printf(fight_format,
+                5, "Total",
+                0, "",
+                battleSeconds,
+                totalHits,
+                (double)totalHits / (double)battleSeconds,
+                totalDamage,
+                (double)totalDamage / (double)totalHits,
+                (double)totalDamage / (double)battleSeconds
+            );
+        if(targets > 0)
+            printf("%s\n", break_str);
     }
+    printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
+    printf("\n");
 }
 
 bool Battle_isMe(struct String* pc)
@@ -206,4 +249,6 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     fight->end = now;
 
     this->m_totalDamage += action->damage;
+    this->m_end = now;
+    this->m_expire = now + configInstance()->keepAlive;
 }
