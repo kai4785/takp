@@ -52,14 +52,14 @@ void tellme(struct SimpleString line)
     {
         case CHAT:
         {
-            fprintf(stderr, "%s\n", message.data);
+            fprintf(stderr, "%.*s\n", (int)message.length, message.data);
             break;
         }
         case MELEE:
         {
             if(config->verbosity > 0)
             {
-                printf("Melee: %s:\n", message.data);
+                printf("Melee: %.*s:\n", (int)message.length, message.data);
                 printf("      ");
                 printf(" %.*s", (int)action.source.length, action.source.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
@@ -76,7 +76,7 @@ void tellme(struct SimpleString line)
         {
             if(config->verbosity > 0)
             {
-                printf("Magic: %s:\n", message.data);
+                printf("Magic: %.*s:\n", (int)message.length, message.data);
                 printf("      ");
                 printf(" %.*s", (int)action.target.length, action.target.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
@@ -92,7 +92,7 @@ void tellme(struct SimpleString line)
         {
             if(config->verbosity > 0)
             {
-                printf("Heal : %s:\n", message.data);
+                printf("Heal : %.*s:\n", (int)message.length, message.data);
                 printf("      ");
                 printf(" %.*s", (int)action.target.length, action.target.data);
                 printf("|%.*s", (int)action.verb.length, action.verb.data);
@@ -107,58 +107,68 @@ void tellme(struct SimpleString line)
         case UNKNOWN:
         default:
         {
-            if(config->verbosity > 1)
-                fprintf(stderr, "[%"PRId64"]:[%"PRId64"] %s\n", lineno, dateseconds, message.data);
+            if(config->verbosity > 10)
+                fprintf(stderr, "[%"PRId64"]:[%"PRId64"]%.*s\n", lineno, dateseconds, (int)message.length, message.data);
             break;
         }
     }
     action.dtor(&action);
 }
 
-#if 0
-From Python
-('--me', '-m', help='Who is "You" in the logs', default='Me')
-('--pc', '-p', action='append', help='Filter to specific (Non-)Player Characters to search for in the logs')
-('--log', '-l', help='Logfile to watch')
-('--history', help='Read the whole log history', action='store_true')
-('--follow', '-f', help='Follow the log file', action='store_true')
-('--since', '-s', help='Parse logs since', default='Thu Jan 01 00:00:00 1970')
-('--keep-alive', '-k', help='Keep alive seconds for each Battle', default=10)
-#endif
+void print_help()
+{
+    printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--keepalive <seconds>] [--verbosity <level>] [--help]\n");
+    printf("\t--log <file>            Filename of the log to parse\n");
+    printf("\t--me <name>             The name of the character that generated the logs\n");
+    printf("\t--history               Parses the entire history of the log file.\n");
+    printf("\t--since <date>          Skip to <date> in the log (see --history)\n");
+    printf("\t--keepalive <seconds>   The number of seconds between battles\n");
+    printf("\t--verbosity <level>     Pump up the verbosity\n");
+    printf("\t--help                  Print this help text\n");
+    printf("\n");
+}
+
 int main(int argc, char **argv)
 {
     struct Config* config = configInstance();
-    struct String opt_me = CONST_STRING("--me");
     struct String opt_log = CONST_STRING("--log");
+    struct String opt_me = CONST_STRING("--me");
     struct String opt_history = CONST_STRING("--history");
     struct String opt_follow = CONST_STRING("--follow");
     struct String opt_since = CONST_STRING("--since");
     struct String opt_keepalive = CONST_STRING("--keepalive");
+    struct String opt_help = CONST_STRING("--help");
+    struct String opt_verbosity = CONST_STRING("--verbosity");
+    bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
     char* logfile = NULL;
     for(int i = 1; i < argc; i++)
     {
         struct SimpleString arg = SIMPLE_STRING(argv[i]);
-        if(opt_me.op_equal(&opt_me, &arg))
+        if(opt_help.op_equal(&opt_help, &arg))
+        {
+            help = true;
+        }
+        else if(opt_me.op_equal(&opt_me, &arg))
         {
             i++;
             config->me = (struct SimpleString)SIMPLE_STRING(argv[i]);
         }
-        if(opt_log.op_equal(&opt_log, &arg))
+        else if(opt_log.op_equal(&opt_log, &arg))
         {
             i++;
             logfile = argv[i];
         }
-        if(opt_history.op_equal(&opt_history, &arg))
+        else if(opt_history.op_equal(&opt_history, &arg))
         {
             config->history = true;
         }
-        if(opt_follow.op_equal(&opt_follow, &arg))
+        else if(opt_follow.op_equal(&opt_follow, &arg))
         {
             config->follow = true;
         }
-        if(opt_since.op_equal(&opt_since, &arg))
+        else if(opt_since.op_equal(&opt_since, &arg))
         {
             i++;
             struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
@@ -168,7 +178,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Error parsing --since string '%s'\n", argv[i]);
             }
         }
-        if(opt_keepalive.op_equal(&opt_keepalive, &arg))
+        else if(opt_keepalive.op_equal(&opt_keepalive, &arg))
         {
             i++;
             struct String keepalive;
@@ -179,10 +189,27 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Error parsing --keepalive string '%s'\n", argv[i]);
             }
         }
+        else if(opt_verbosity.op_equal(&opt_verbosity, &arg))
+        {
+            i++;
+            struct String verbosity;
+            String_ctorHold(&verbosity, argv[i], strlen(argv[i]));
+            config->verbosity = (int)verbosity.toInt(&verbosity);
+            if(config->verbosity < 0)
+            {
+                fprintf(stderr, "Error parsing --verbosity string '%s'\n", argv[i]);
+            }
+        }
+    }
+    if(help)
+    {
+        print_help();
+        return 0;
     }
     if(!logfile)
     {
         fprintf(stderr, "No log file provided (--log)\n");
+        print_help();
         return 1;
     }
     tail(logfile, &tellme);
