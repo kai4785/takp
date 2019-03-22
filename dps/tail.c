@@ -20,7 +20,7 @@ off_t fdSize(int fd)
 void tail(const char* filename, tailfn callback)
 {
     struct Config* config = configInstance();
-    int fd = open(filename, O_RDONLY);
+    int fd = open(filename, O_RDONLY | O_BINARY);
     if (fd < 0)
     {
         fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
