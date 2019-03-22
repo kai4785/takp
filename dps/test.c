@@ -63,7 +63,7 @@ int _validateAction(struct Action action, const char* file, int line)
     }
     if(!action.source.op_equal(&action.source, newAction.source.to_SimpleString(&newAction.source)))
     {
-        fprintf(stderr, "[%s:%d]: Action source mismatch: %.*s != %.*s\n",
+        fprintf(stderr, "[%s:%d]: Action source mismatch: '%.*s' != '%.*s'\n",
             file, line,
             (int)action.source.length, action.source.data,
             (int)newAction.source.length, newAction.source.data);
@@ -125,7 +125,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("a blizzard hunter");
     action.verb = CONST_STRING("non-melee");
     action.damage = 8;

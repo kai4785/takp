@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(eqdps VERSION 0.2.0)
+project(eqdps VERSION 0.3.0)
 
 option(ENABLE_PROFILING "Enable profiling" Off)
 option(ENABLE_CODE_COVERAGE "Enable code coverage" Off)
