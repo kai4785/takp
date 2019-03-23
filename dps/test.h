@@ -27,4 +27,32 @@
     _errors += newErrors; \
 }
 
+// Helpers
+int cmp_Signed(int64_t left, int64_t right, bool equals)
+{
+    return (equals != (left == right));
+}
+
+void print_Signed(int64_t value)
+{
+    fprintf(stderr, "(%"PRId64")", value);
+}
+
+int cmp_Unsigned(uint64_t left, uint64_t right, bool equals)
+{
+    return (equals != (left == right));
+}
+
+void print_Unsigned(uint64_t value)
+{
+    fprintf(stderr, "(%"PRIu64")", value);
+}
+
+// NOTE: define 'errors' locally
+#define test_int_eq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true)
+#define test_int_neq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true)
+
+#define test_uint_eq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true)
+#define test_uint_neq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true)
+
 #endif // TEST_H

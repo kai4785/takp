@@ -74,7 +74,7 @@ enable_testing()
 set(UNITS
     array
     action
-#    battle
+    battle
 #    config
     date
     tail
