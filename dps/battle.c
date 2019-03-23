@@ -149,9 +149,9 @@ void Battle_report(struct Battle* this)
     if(battleSeconds == 0)
         battleSeconds = 1;
     printf("Battle report! %"PRId64"s [%"PRId64" : %"PRId64"]\n", battleSeconds, this->m_start, this->m_end);
-    const char* break_str = "-------------------------------------------------------------------------------------------------------";
-    const char* header_format = "%-35s %-30s %4s %4s %5s %6s %6s %6s\n";
-    const char* fight_format = "%-35.*s %-30.*s %4d %4d %5.2f %6d %6.2f %6.2f\n";
+    #define break_str "-------------------------------------------------------------------------------------------------------"
+    #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
+    #define fight_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
