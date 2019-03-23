@@ -37,6 +37,11 @@ else()
     endif()
     if(ENABLE_CODE_COVERAGE)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+        add_custom_target(coverage_html
+            lcov -c -d . -o lcov.info
+            COMMAND genhtml lcov.info -o coverage_html
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
     endif()
 endif()
 
