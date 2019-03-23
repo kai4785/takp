@@ -66,16 +66,12 @@ install(TARGETS dps RUNTIME DESTINATION .)
 # Here be testing
 enable_testing()
 
-add_executable(dps-test test.c)
-target_link_libraries(dps-test PRIVATE enchilada)
-add_test(dps-test dps-test)
-
 set(UNITS
-#    array
-#    action
+    array
+    action
 #    battle
 #    config
-#    date
+    date
     tail
     utility
 )

@@ -1,49 +1,5 @@
-#include "array.h"
 #include "action.h"
-#include "battle.h"
-#include "date.h"
-#include "tail.h"
-
-#include <string.h>
-#include <stdio.h>
-
-#define dateEquals(_x, _y) _dateEquals(_x, _y, __FILE__, __LINE__)
-
-// TODO: Why can't this be const?
-int _dateEquals(/*const*/ char* date, int64_t expected, const char* file, int line)
-{
-    int errors = 0;
-    const struct SimpleString dateString =
-    {
-        .data = date,
-        .length = strlen(date)
-    };
-    int64_t got = parseDate(dateString);
-    if(got != expected)
-    {
-        fprintf(stderr, "Failed to parse date: %s:%d\n", file, line);
-        fprintf(stderr, "   date:  [%d]%.*s\n", (int)dateString.length, (int)dateString.length, dateString.data);
-        fprintf(stderr, "   value: %"PRId64" != %"PRId64"\n", got, expected);
-        errors++;
-    }
-    return errors;
-}
-
-int testDates()
-{
-    int errors = 0;
-
-    errors += dateEquals("Tue Mar 16 00:00:00 1999",           0LL);
-    errors += dateEquals("Tue Mar 16 00:00:01 1999",           1LL);
-    errors += dateEquals("Tue Mar 16 00:01:00 1999",          60LL);
-    errors += dateEquals("Tue Mar 16 01:00:00 1999",        3600LL);
-    errors += dateEquals("Tue Apr 16 00:00:00 1999",     2678400LL);
-    errors += dateEquals("Tue Mar 16 00:00:00 2000",    31622400LL); // Leap year!
-    errors += dateEquals("Wed Mar 06 22:09:37 2019",   630367777LL);
-    errors += dateEquals("Wed Mar 06 22:10:46 2019",   630367846LL);
-
-    return errors;
-}
+#include "test.h"
 
 #define validateAction(_x) _validateAction(_x, __FILE__, __LINE__)
 
@@ -176,66 +132,10 @@ int testActions()
     return errors;
 }
 
-#define __test(_l, _r) \
-if((_l) != (_r)) { \
-    fprintf(stderr, "%s:%d: Comparison failed: (%lu == %lu)\n", __FILE__, __LINE__, (_l), (_r)); \
-    errors++; \
-}
-
-int testArray()
-{
-    int errors = 0;
-    {
-        struct Array array;
-        Array_ctor(&array, sizeof(unsigned long));
-
-        array.resize(&array, 10);
-        __test(array.size, 0UL);
-        __test(array.capacity, 10UL);
-        __test(array.datumSize, sizeof(unsigned long));
-        unsigned long newValue = 0;
-        array.push(&array, &newValue);
-        newValue++;
-        array.push(&array, &newValue);
-        newValue++;
-        __test(array.size, 2UL);
-        __test(array.capacity, 10UL);
-        __test(*(unsigned long*)array.at(&array, 0), 0UL);
-        __test(*(unsigned long*)array.at(&array, 1), 1UL);
-        for(; newValue < 10; newValue++)
-        {
-            array.push(&array, &newValue);
-        }
-        __test(array.size, 10UL);
-        __test(array.capacity, 10UL);
-        __test(*(unsigned long*)array.at(&array, 8), 8UL);
-        __test(*(unsigned long*)array.at(&array, 9), 9UL);
-        array.push(&array, &newValue);
-        newValue++;
-        __test(array.size, 11UL);
-        __test(array.capacity, 20UL);
-        __test(*(unsigned long*)array.at(&array, 10), 10UL);
-        for(; newValue < 1024; newValue++)
-        {
-            array.push(&array, &newValue);
-        }
-        __test(array.size, 1024UL);
-        __test(array.capacity, 1024UL);
-
-        array.resize(&array, 10);
-        __test(array.size, 10UL);
-        __test(array.capacity, 10UL);
-        array.dtor(&array);
-    }
-    return errors;
-}
-
 int main()
 {
     int errors = 0;
-    errors += testDates();
     errors += testActions();
-    errors += testArray();
     printf("Tests failed: %d\n", errors);
     return errors;
 }
