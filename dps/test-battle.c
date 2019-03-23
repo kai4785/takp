@@ -65,7 +65,5 @@ int main()
     test_uint_eq(fight->hps(fight), 1);
     test_uint_eq(fight->dph(fight), 1);
 
-    errors++;
-
     return errors;
 }
