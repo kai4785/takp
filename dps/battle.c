@@ -7,7 +7,7 @@
 // Glocal Battle object
 struct Battle* battleInstance()
 {
-    static struct Battle battle;
+    static struct Battle battle = {0};
     static bool initialized = false;
     if(!initialized)
     {
@@ -20,6 +20,10 @@ struct Battle* battleInstance()
 // Member function declarations
 // Fight
 void Fight_dtor(struct Fight *this);
+int64_t Fight_seconds(struct Fight *this);
+double Fight_dps(struct Fight *this);
+double Fight_hps(struct Fight *this);
+double Fight_dph(struct Fight *this);
 // Battle
 void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
@@ -38,6 +42,10 @@ void Fight_ctor(struct Fight* this)
         .end = 0,
         .hits = 0,
         .damage = 0,
+        .seconds = &Fight_seconds,
+        .dps = &Fight_dps,
+        .hps = &Fight_hps,
+        .dph = &Fight_dph,
         .dtor = &Fight_dtor
     };
 }
@@ -47,6 +55,28 @@ struct Fight* Fight_new()
     struct Fight* this = (struct Fight*)malloc(sizeof(struct Fight));
     Fight_ctor(this);
     return this;
+}
+
+int64_t Fight_seconds(struct Fight* this)
+{
+    if(this->end == this->start)
+        return 1;
+    return this->end - this->start;
+}
+
+double Fight_dps(struct Fight* this)
+{
+    return (double)(this->damage) / (double)(this->seconds(this));
+}
+
+double Fight_hps(struct Fight* this)
+{
+    return (double)(this->hits) / (double)(this->seconds(this));
+}
+
+double Fight_dph(struct Fight* this)
+{
+    return (double)(this->damage) / (double)(this->hits);
 }
 
 void Battle_String_dtor(void* string)
@@ -137,21 +167,15 @@ void Battle_report(struct Battle* this)
             targets++;
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
-            int64_t seconds = fight->end - fight->start;
-            if(!seconds)
-                seconds = 1;
-            double dps = (double)fight->damage / (double)seconds;
-            double hps = (double)fight->hits / (double)seconds;
-            double dpa = (double)fight->damage / (double)fight->hits;
             printf(fight_format,
                 (int)source->length, (targets == 1) ? source->data : "",
                 (int)target->length, target->data,
-                seconds,
+                fight->seconds(fight),
                 fight->hits,
-                hps,
+                fight->hps(fight),
                 fight->damage,
-                dpa,
-                dps
+                fight->dph(fight),
+                fight->dps(fight)
             );
             totalHits += fight->hits;
             totalDamage += fight->damage;
@@ -233,7 +257,7 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sou
         }
     }
     // Make a new fight
-    struct Fight fight;
+    struct Fight fight = {0};
     Fight_ctor(&fight);
     fight.sourceId = sourceId;
     fight.targetId = targetId;

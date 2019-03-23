@@ -19,6 +19,10 @@ struct Fight
     int64_t end;
     int64_t hits;
     int64_t damage;
+    int64_t (*seconds)(struct Fight* this);
+    double (*dps)(struct Fight* this);
+    double (*hps)(struct Fight* this);
+    double (*dph)(struct Fight* this);
     void (*dtor)(struct Fight* this);
 };
 

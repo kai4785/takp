@@ -212,8 +212,8 @@ int main(int argc, char **argv)
         print_help();
         return 1;
     }
-    tail(logfile, &tellme);
     struct Battle* battle = battleInstance();
+    tail(logfile, &tellme);
     battle->dtor(battle);
     return 0;
 }
