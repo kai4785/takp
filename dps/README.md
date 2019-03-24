@@ -1,5 +1,5 @@
+[![Build Status](https://travis-ci.com/kai4785/takp.svg?branch=master)](https://travis-ci.com/kai4785/takp)
 # Everquest (TAKP) dps parser
-
 ## Name
 dps - parses takp log files
 
