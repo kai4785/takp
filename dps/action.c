@@ -59,6 +59,7 @@ void parseVerb(struct Action* this, struct String message)
                 struct String damage;
                 String_ctorHold(&damage, message.data + i, message.length - i);
                 // This is a special AE type message; we just parse it and return, or break and continue;
+                this->source = CONST_STRING("Spell/DS(Total)");
                 this->type = MAGIC;
                 this->target.hold(&this->target, message.data, 3); // These lines begin with "You"
                 this->verb.hold(&this->verb, aeVerb.data + 1, aeVerb.length - 2); // Trim leading/trailing slash

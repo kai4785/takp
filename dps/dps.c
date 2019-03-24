@@ -37,6 +37,10 @@ void tellme(struct SimpleString line)
     {
         return;
     }
+	if (config->verbosity > 10)
+	{
+		printf("dateseconds: %"PRId64"\n", dateseconds);
+    }
 
     struct Battle* battle = battleInstance();
     if(battle->m_start > 0 && battle->m_expire < dateseconds)
@@ -120,6 +124,7 @@ void print_help()
     printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--keepalive <seconds>] [--verbosity <level>] [--help]\n");
     printf("\t--log <file>            Filename of the log to parse\n");
     printf("\t--me <name>             The name of the character that generated the logs\n");
+    printf("\t--follow                Parse the log file live as it is written to\n");
     printf("\t--history               Parses the entire history of the log file.\n");
     printf("\t--since <date>          Skip to <date> in the log (see --history)\n");
     printf("\t--keepalive <seconds>   The number of seconds between battles\n");
