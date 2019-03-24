@@ -97,7 +97,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 300;
@@ -105,7 +105,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -113,7 +113,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 130;
@@ -121,7 +121,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
