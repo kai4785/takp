@@ -128,6 +128,7 @@ int testActions()
     action.message = "Your body combusts as the lava hits you.  You have taken 1 point of damage.";
     errors += validateAction(action);
 
+    // TODO: Handle finishing blows
     action.dtor(&action);
     return errors;
 }

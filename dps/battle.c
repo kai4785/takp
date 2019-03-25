@@ -145,6 +145,7 @@ void Battle_reset(struct Battle* this)
 
 void Battle_report(struct Battle* this)
 {
+    struct Config* config = configInstance();
     int64_t battleSeconds = this->m_end - this->m_start;
     if(battleSeconds == 0)
         battleSeconds = 1;
@@ -156,20 +157,22 @@ void Battle_report(struct Battle* this)
     printf("%s\n", break_str);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
     {
-        int targets = 0;
+        int linesPrinted = 0;
         int64_t totalHits = 0;
         int64_t totalDamage = 0;
         for(size_t i = 0; i < this->m_fight.size; i++)
         {
             struct Fight* fight = this->m_fight.at(&this->m_fight, i);
-            if(fight->sourceId != pcId)
+            int64_t id = config->reportByTarget ? fight->targetId : fight->sourceId;
+            bool printSource = (!linesPrinted ||  config->reportByTarget);
+            bool printTarget = (!linesPrinted || !config->reportByTarget);
+            if(id != pcId)
                 continue;
-            targets++;
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
             printf(fight_format,
-                (int)source->length, (targets == 1) ? source->data : "",
-                (int)target->length, target->data,
+                (int)source->length, printSource ? source->data : "",
+                (int)target->length, printTarget ? target->data : "",
                 fight->seconds(fight),
                 fight->hits,
                 fight->hps(fight),
@@ -179,8 +182,9 @@ void Battle_report(struct Battle* this)
             );
             totalHits += fight->hits;
             totalDamage += fight->damage;
+            linesPrinted++;
         }
-        if(targets > 1)
+        if(linesPrinted > 1)
             printf(fight_format,
                 5, "Total",
                 0, "",
@@ -191,7 +195,7 @@ void Battle_report(struct Battle* this)
                 (double)totalDamage / (double)totalHits,
                 (double)totalDamage / (double)battleSeconds
             );
-        if(targets > 0)
+        if(linesPrinted > 0)
             printf("%s\n", break_str);
     }
     printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
@@ -268,6 +272,10 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sou
 
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
 {
+    // TODO: Handle finishing blows separately
+    // Preceeded by a "<Name> scores a Finishing Blow!!"
+    if(action->type == MELEE && action->damage >= 32000)
+        return;
     int64_t sourceId = Battle_getPCIndex(this, &action->source);
     int64_t targetId = Battle_getPCIndex(this, &action->target);
 

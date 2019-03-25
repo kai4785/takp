@@ -142,6 +142,7 @@ int main(int argc, char **argv)
     struct String opt_follow = CONST_STRING("--follow");
     struct String opt_since = CONST_STRING("--since");
     struct String opt_keepalive = CONST_STRING("--keepalive");
+    struct String opt_reportByTarget = CONST_STRING("--by-target");
     struct String opt_help = CONST_STRING("--help");
     struct String opt_verbosity = CONST_STRING("--verbosity");
     bool help = false;
@@ -172,6 +173,10 @@ int main(int argc, char **argv)
         else if(opt_follow.op_equal(&opt_follow, &arg))
         {
             config->follow = true;
+        }
+        else if(opt_follow.op_equal(&opt_reportByTarget, &arg))
+        {
+            config->reportByTarget = true;
         }
         else if(opt_since.op_equal(&opt_since, &arg))
         {

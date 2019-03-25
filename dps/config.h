@@ -10,6 +10,7 @@ struct Config
 {
     bool follow;
     bool history;
+    bool reportByTarget;
     int verbosity;
     struct SimpleString me;
     const char* logfile;
