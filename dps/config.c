@@ -11,7 +11,7 @@ struct Config* configInstance()
         config.reportByTarget = false;
         config.me = (struct SimpleString)SIMPLE_STRING("You");
         config.logfile = NULL;
-        config.since = 0;
+        config.since = -1;
         config.keepAlive = 10;
         config.verbosity = 0;
         initialized = true;

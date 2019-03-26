@@ -1,0 +1,2 @@
+[Tue Mar 16 00:00:00 1999] Someone hits Someone Else for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Someone Else hits Someone for 1 point of damage.

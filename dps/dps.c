@@ -37,13 +37,13 @@ void tellme(struct SimpleString line)
     {
         return;
     }
-	if (config->verbosity > 10)
-	{
-		printf("dateseconds: %"PRId64"\n", dateseconds);
+    if(config->verbosity > 10)
+    {
+        printf("dateseconds: %"PRId64"\n", dateseconds);
     }
 
     struct Battle* battle = battleInstance();
-    if(battle->m_start > 0 && battle->m_expire < dateseconds)
+    if(battle->isOver(battle, dateseconds))
     {
         battle->report(battle);
         battle->reset(battle);
@@ -71,8 +71,6 @@ void tellme(struct SimpleString line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle->m_start == 0)
-                battle->start(battle, dateseconds);
             battle->melee(battle, dateseconds, &action);
             break;
         }
@@ -87,8 +85,6 @@ void tellme(struct SimpleString line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle->m_start == 0)
-                battle->start(battle, dateseconds);
             battle->magic(battle, dateseconds, &action);
             break;
         }
@@ -103,8 +99,6 @@ void tellme(struct SimpleString line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            if(battle->m_start == 0)
-                battle->start(battle, dateseconds);
             battle->m_totalHeals += action.damage;
             break;
         }

@@ -28,6 +28,9 @@ double Fight_dph(struct Fight *this);
 void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
+bool Battle_inProgress(struct Battle *this);
+bool Battle_isOver(struct Battle *this, int64_t now);
+int64_t Battle_seconds(struct Battle *this);
 void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
@@ -88,13 +91,16 @@ void Battle_String_dtor(void* string)
 void Battle_ctor(struct Battle* this)
 {
     *this = (struct Battle) {
-        .m_start = 0,
-        .m_end = 0,
+        .m_start = -1,
+        .m_end = -1,
         .m_expire = 0,
         .m_totalDamage = 0,
         .m_totalHeals = 0,
         .start = &Battle_start,
         .reset = &Battle_reset,
+        .inProgress = &Battle_inProgress,
+        .isOver = &Battle_isOver,
+        .seconds = &Battle_seconds,
         .report = &Battle_report,
         .melee = &Battle_melee,
         .magic = &Battle_magic,
@@ -132,10 +138,29 @@ void Battle_start(struct Battle* this, int64_t now)
     this->m_expire = now + configInstance()->keepAlive;
 }
 
+bool Battle_isOver(struct Battle* this, int64_t now)
+{
+    return (this->m_start > 0 && this->m_expire < now);
+}
+
+bool Battle_inProgress(struct Battle* this)
+{
+    return this->seconds(this) > 0;
+}
+
+int64_t Battle_seconds(struct Battle* this)
+{
+    if(this->m_start == -1)
+        return 0;
+    if(this->m_end == this->m_start)
+        return 1;
+    return this->m_end - this->m_start;
+}
+
 void Battle_reset(struct Battle* this)
 {
-    this->m_start = 0;
-    this->m_end = 0;
+    this->m_start = -1;
+    this->m_end = -1;
     this->m_expire = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
@@ -276,6 +301,8 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     // Preceeded by a "<Name> scores a Finishing Blow!!"
     if(action->type == MELEE && action->damage >= 32000)
         return;
+    if(!this->inProgress(this))
+        this->start(this, now);
     int64_t sourceId = Battle_getPCIndex(this, &action->source);
     int64_t targetId = Battle_getPCIndex(this, &action->target);
 
