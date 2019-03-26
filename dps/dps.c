@@ -218,6 +218,8 @@ int main(int argc, char **argv)
     }
     struct Battle* battle = battleInstance();
     tail(logfile, &tellme);
+    if(battle->inProgress(battle))
+        battle->report(battle);
     battle->dtor(battle);
     return 0;
 }
