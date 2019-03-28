@@ -12,6 +12,9 @@ struct SimpleString
     size_t length;
 };
 
+// TODO: I'm not super happy with mixing and matching String, SimpleString, and
+// `const char*` inputs. Would be nice to have a clever solution to this
+// problem. I like the 'hold' stuff, but it gets a little onerous.
 struct String;
 void String_ctor    (struct String* this);
 void String_ctorHold(struct String* this, char* data, size_t length);
@@ -24,10 +27,12 @@ struct String
     bool ownsPtr;
     void (*hold)         (struct String* this, char* data, size_t length);
     void (*dup)          (struct String* this, char* data, size_t length);
-    void (*copy)         (struct String* this, struct SimpleString* that);
+    void (*cpy)          (struct String* this, char* data, size_t length);
+    int  (*cmp)          (struct String* this, char* data, size_t length);
     bool (*startsWith)   (struct String* this, struct SimpleString* that);
     bool (*endsWith)     (struct String* this, struct SimpleString* that);
     bool (*op_equal)     (struct String* this, struct SimpleString* that);
+    bool (*fromInt)      (struct String* this, int64_t value);
     int64_t (*toInt)     (struct String* this);
     void (*clear)        (struct String* this);
     struct SimpleString* (*to_SimpleString)(struct String* this);

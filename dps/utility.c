@@ -7,11 +7,13 @@
 // Member function declarations
 void String_hold      (struct String* this, char* data, size_t length);
 void String_dup       (struct String* this, char* data, size_t length);
-void String_copy      (struct String* this, struct SimpleString* that);
+void String_cpy       (struct String* this, char* data, size_t length);
+int String_cmp       (struct String* this, char* data, size_t length);
 bool String_startsWith(struct String* this, struct SimpleString* that);
 bool String_endsWith  (struct String* this, struct SimpleString* that);
 bool String_op_equal  (struct String* this, struct SimpleString* that);
 int64_t String_toInt  (struct String* this);
+bool String_fromInt   (struct String* this, int64_t value);
 void String_clear     (struct String* this);
 struct SimpleString*  String_to_SimpleString(struct String* this);
 void String_dtor      (struct String* this);
@@ -25,11 +27,13 @@ void String_ctor(struct String* this)
         .ownsPtr = false,
         .hold = &String_hold,
         .dup = &String_dup,
-        .copy = &String_copy,
+        .cpy = &String_cpy,
+        .cmp = &String_cmp,
         .startsWith = &String_startsWith,
         .endsWith = &String_endsWith,
         .op_equal = &String_op_equal,
         .toInt = &String_toInt,
+        .fromInt = &String_fromInt,
         .clear = &String_clear,
         .to_SimpleString = &String_to_SimpleString,
         .dtor = &String_dtor,
@@ -68,14 +72,19 @@ void String_dup(struct String* this, char* data, size_t length)
         free(this->data);
     }
     this->data = malloc(length);
-    this->data = strncpy(this->data, data, length);
-    this->length = length;
     this->ownsPtr = true;
+    this->cpy(this, data, length);
 }
 
-void String_copy(struct String* this, struct SimpleString* that)
+void String_cpy(struct String* this, char* data, size_t length)
 {
-    this->dup(this, that->data, that->length);
+    this->data = strncpy(this->data, data, length);
+    this->length = length;
+}
+
+int String_cmp(struct String* this, char* data, size_t length)
+{
+    return strncmp(this->data, data, length);
 }
 
 bool String_startsWith(struct String* this, struct SimpleString* that)
@@ -99,13 +108,26 @@ bool String_op_equal(struct String* this, struct SimpleString* that)
     return (strncmp(this->data, that->data, that->length) == 0);
 }
 
+bool String_fromInt(struct String* this, int64_t value)
+{
+    char* here = this->data + this->length - 1;
+    int64_t base = 10;
+    for(size_t i = 0; i < this->length; i++)
+    {
+        *(here--) = (value % base) + '0';
+        value /= 10;
+    }
+    return (value == 0);
+}
+
 int64_t String_toInt(struct String* this)
 {
     int64_t value = 0;
     int64_t base = 1;
-    for(size_t i = this->length; i > 0; i--)
+    char* here = this->data + this->length - 1;
+    for(size_t i = 0; i < this->length; i++)
     {
-        value += (this->data[i - 1] - '0') * base;
+        value += (*(here--) - '0') * base;
         base *= 10;
     }
     return value;

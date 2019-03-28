@@ -1,4 +1,5 @@
 #include "battle.h"
+#include "date.h"
 #include "config.h"
 
 #include <stdio.h>
@@ -170,11 +171,19 @@ void Battle_reset(struct Battle* this)
 
 void Battle_report(struct Battle* this)
 {
+    char datebuf[24] = {0};
+    struct SimpleString date = { .data = datebuf, .length = sizeof(datebuf) };
     struct Config* config = configInstance();
     int64_t battleSeconds = this->m_end - this->m_start;
     if(battleSeconds == 0)
         battleSeconds = 1;
-    printf("Battle report! %"PRId64"s [%"PRId64" : %"PRId64"]\n", battleSeconds, this->m_start, this->m_end);
+    printf("Battle report! %"PRId64"s [", battleSeconds);
+    unparseDate(this->m_start, &date);
+    printf("%.*s", (int)date.length, date.data);
+    printf(" - ");
+    unparseDate(this->m_end, &date);
+    printf("%.*s", (int)date.length, date.data);
+    printf("]:\n");
     #define break_str "-------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
     #define fight_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"

@@ -24,8 +24,8 @@ void tellme(struct SimpleString line)
         return;
     }
     struct SimpleString datestring = {
-        .data = line.data + 1,
-        .length = 24
+        .data = line.data + 5,
+        .length = 20
     };
     struct String message;
     String_ctorHold(&message,
