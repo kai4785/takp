@@ -99,7 +99,7 @@ void tellme(struct SimpleString line)
                 printf("|%"PRId64"", action.damage);
                 printf("\n");
             }
-            battle->m_totalHeals += action.damage;
+            battle->heal(battle, dateseconds, &action);
             break;
         }
         case UNKNOWN:

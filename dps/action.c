@@ -59,7 +59,6 @@ void parseVerb(struct Action* this, struct String message)
                 struct String damage;
                 String_ctorHold(&damage, message.data + i, message.length - i);
                 // This is a special AE type message; we just parse it and return, or break and continue;
-                this->source = CONST_STRING("Spell/DS(Total)");
                 this->type = MAGIC;
                 this->target.hold(&this->target, message.data, 3); // These lines begin with "You"
                 this->verb.hold(&this->verb, aeVerb.data + 1, aeVerb.length - 2); // Trim leading/trailing slash
@@ -102,7 +101,8 @@ void parseVerb(struct Action* this, struct String message)
         {" smash "    ,  7},
         {" smashes "  ,  9},
     };
-    struct SimpleString nonMeleeVerb = { .data = " was hit by ", .length = 12};
+    struct SimpleString nonMeleeVerb1 = { .data = " was hit by ", .length = 12};
+    struct SimpleString nonMeleeVerb2 = { .data = " were hit by ", .length = 13};
     struct SimpleString healedVerb = { .data = " have been healed ", .length = 18};
     // 0 initial
     // 1 found melee verb, looking for target length
@@ -121,15 +121,15 @@ void parseVerb(struct Action* this, struct String message)
             );
             if(state == Split0)
             {
-                if(here.startsWith(&here, &nonMeleeVerb))
+                if(here.startsWith(&here, &nonMeleeVerb1) || here.startsWith(&here, &nonMeleeVerb2))
                 {
+                    size_t length = (here.data[2] == 'a') ? nonMeleeVerb1.length : nonMeleeVerb2.length;
                     this->type = MAGIC;
-                    this->source = CONST_STRING("Spell/DS(Total)");
                     this->target.data = message.data;
                     this->target.length = i;
-                    this->verb.data = message.data + i + nonMeleeVerb.length;
+                    this->verb.data = message.data + i + length;
                     this->verb.length = 9;
-                    i += nonMeleeVerb.length;
+                    i += length;
                     state = Split2;
                 }
                 else if(here.startsWith(&here, &healedVerb))

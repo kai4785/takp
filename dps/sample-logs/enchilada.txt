@@ -1,0 +1,38 @@
+[Tue Mar 16 00:00:00 1999] Player1 says, '5 hits in 1 second'
+[Tue Mar 16 00:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Player1 hits Player2 for 1 point of damage.
+
+[Tue Mar 16 01:00:00 1999] Player1 says, '5 hits in 5 seconds'
+[Tue Mar 16 01:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 01:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 01:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 01:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 01:00:05 1999] Player1 hits Player2 for 1 point of damage.
+
+[Tue Mar 16 02:00:00 1999] Player1 says, '5 hits in 5 seconds'
+[Tue Mar 16 02:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 02:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 02:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 02:00:00 1999] Player1 hits Player2 for 1 point of damage.
+[Tue Mar 16 02:00:05 1999] Player1 hits Player2 for 1 point of damage.
+
+[Tue Mar 16 03:00:00 1999] Player1 says, 'Magic damage'
+[Tue Mar 16 03:00:01 1999] Player1 was hit by non-melee for 1 point of damage.
+[Tue Mar 16 03:00:02 1999] Player1 was hit by non-melee for 2 points of damage.
+[Tue Mar 16 03:00:03 1999] Player1 was hit by non-melee for 3 points of damage.
+[Tue Mar 16 03:00:04 1999] Player1 was hit by non-melee for 4 points of damage.
+[Tue Mar 16 03:00:05 1999] Player1 was hit by non-melee for 5 points of damage.
+
+[Tue Mar 16 04:00:00 1999] Player1 says, 'YOU'
+[Tue Mar 16 04:00:00 1999] Player1 hits YOU for 1 point of damage.
+[Tue Mar 16 04:00:00 1999] You were hit by non-melee for 1 point of damage.
+[Tue Mar 16 04:00:00 1999] You hit Player1 for 1 point of damage.
+
+[Tue Mar 16 05:00:00 1999] Player1 says, 'Heals'
+[Tue Mar 16 05:00:00 1999] You have been healed for 1 point of damage.
+[Tue Mar 16 05:00:00 1999] You have been healed for 2 points of damage.
+[Tue Mar 16 05:00:00 1999] You have been healed for 3 points of damage.
+[Tue Mar 16 06:00:00 1999] Player2 performs an exceptional heal! (15000)

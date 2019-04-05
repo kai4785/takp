@@ -29,12 +29,14 @@ double Fight_dph(struct Fight *this);
 void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
+void Battle_keepalive(struct Battle* this, int64_t now);
 bool Battle_inProgress(struct Battle *this);
 bool Battle_isOver(struct Battle *this, int64_t now);
 int64_t Battle_seconds(struct Battle *this);
 void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
+void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 
 // Constructors
 void Fight_ctor(struct Fight* this)
@@ -105,6 +107,7 @@ void Battle_ctor(struct Battle* this)
         .report = &Battle_report,
         .melee = &Battle_melee,
         .magic = &Battle_magic,
+        .heal = &Battle_heal,
         .dtor = &Battle_dtor
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
@@ -134,14 +137,22 @@ void Battle_dtor(struct Battle *this)
 
 void Battle_start(struct Battle* this, int64_t now)
 {
-    this->m_start = now;
+    if(!this->inProgress(this))
+    {
+        this->m_start = now;
+        Battle_keepalive(this, now);
+    }
+}
+
+void Battle_keepalive(struct Battle* this, int64_t now)
+{
     this->m_end = now;
     this->m_expire = now + configInstance()->keepAlive;
 }
 
 bool Battle_isOver(struct Battle* this, int64_t now)
 {
-    return (this->m_start > 0 && this->m_expire < now);
+    return (this->m_start > -1 && this->m_expire < now);
 }
 
 bool Battle_inProgress(struct Battle* this)
@@ -220,8 +231,8 @@ void Battle_report(struct Battle* this)
         }
         if(linesPrinted > 1)
             printf(fight_format,
-                5, "Total",
                 0, "",
+                6, "+Total",
                 battleSeconds,
                 totalHits,
                 (double)totalHits / (double)battleSeconds,
@@ -310,8 +321,7 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     // Preceeded by a "<Name> scores a Finishing Blow!!"
     if(action->type == MELEE && action->damage >= 32000)
         return;
-    if(!this->inProgress(this))
-        this->start(this, now);
+    this->start(this, now);
     int64_t sourceId = Battle_getPCIndex(this, &action->source);
     int64_t targetId = Battle_getPCIndex(this, &action->target);
 
@@ -321,11 +331,18 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     fight->end = now;
 
     this->m_totalDamage += action->damage;
-    this->m_end = now;
-    this->m_expire = now + configInstance()->keepAlive;
+    Battle_keepalive(this, now);
 }
 
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action)
 {
+    action->source = CONST_STRING("Spell/DS(Total)");
     Battle_melee(this, now, action);
+}
+
+void Battle_heal(struct Battle* this, int64_t now, struct Action* action)
+{
+    this->start(this, now);
+    this->m_totalHeals += action->damage;
+    Battle_keepalive(this, now);
 }
