@@ -128,6 +128,38 @@ int testActions()
     action.message = "Your body combusts as the lava hits you.  You have taken 1 point of damage.";
     errors += validateAction(action);
 
+    action.type = DEATH;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("have slain");
+    action.damage = 0;
+    action.message = "You have slain Player1!";
+    errors += validateAction(action);
+
+    action.type = DEATH;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have been slain by");
+    action.damage = 0;
+    action.message = "You have been slain by Player1!";
+    errors += validateAction(action);
+
+    action.type = DEATH;
+    action.source = CONST_STRING("Player2");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("has been slain by");
+    action.damage = 0;
+    action.message = "Player1 has been slain by Player2!";
+    errors += validateAction(action);
+
+    action.type = DEATH;
+    action.source.clear(&action.source);
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("died");
+    action.damage = 0;
+    action.message = "Player1 died.";
+    errors += validateAction(action);
+
     // TODO: Handle finishing blows
     action.dtor(&action);
     return errors;

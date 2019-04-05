@@ -41,15 +41,20 @@ int main()
         left.dtor(&left);
         right.dtor(&right);
     }
-    // Basic start and ends
+    // Search for matches
     {
         struct String fox = CONST_STRING("the quick brown fox jumped over the lazy dog");
         struct SimpleString theStart = SIMPLE_STRING("the quick brown fox");
         struct SimpleString theEnd = SIMPLE_STRING("the lazy dog");
+        struct SimpleString theMiddle = SIMPLE_STRING("brown fox jumped");
         _test(errors, fox.startsWith(&fox, &theStart), true);
         _test(errors, fox.endsWith(&fox, &theEnd), true);
         _test(errors, fox.startsWith(&fox, &theEnd), false);
         _test(errors, fox.endsWith(&fox, &theStart), false);
+        struct SimpleString found = {0};
+        _test(errors, fox.find(&fox, &theMiddle, &found), true);
+        _test(errors, (found.length == theMiddle.length), true);
+        _test(errors, (found.data == fox.data + 10), true);
         fox.dtor(&fox);
     }
     // Integer conversion

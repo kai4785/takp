@@ -11,6 +11,7 @@ void String_cpy       (struct String* this, char* data, size_t length);
 int String_cmp       (struct String* this, char* data, size_t length);
 bool String_startsWith(struct String* this, struct SimpleString* that);
 bool String_endsWith  (struct String* this, struct SimpleString* that);
+bool String_find      (struct String* this, struct SimpleString* that, struct SimpleString* found);
 bool String_op_equal  (struct String* this, struct SimpleString* that);
 int64_t String_toInt  (struct String* this);
 bool String_fromInt   (struct String* this, int64_t value);
@@ -31,6 +32,7 @@ void String_ctor(struct String* this)
         .cmp = &String_cmp,
         .startsWith = &String_startsWith,
         .endsWith = &String_endsWith,
+        .find = &String_find,
         .op_equal = &String_op_equal,
         .toInt = &String_toInt,
         .fromInt = &String_fromInt,
@@ -99,6 +101,21 @@ bool String_endsWith(struct String* this, struct SimpleString* that)
     if(this->length < that->length)
         return false;
     return (strncmp(this->data + this->length - that->length, that->data, that->length) == 0);
+}
+
+bool String_find(struct String* this, struct SimpleString* that, struct SimpleString* found)
+{
+    if(this->length < that->length)
+        return false;
+    for(size_t i = 0; i < this->length - that->length; i++)
+    {
+        if(this->data[i] == that->data[0] && strncmp(this->data + i, that->data, that->length) == 0)
+        {
+            *found = (struct SimpleString){ .data = this->data + i, .length = that->length };
+            return true;
+        }
+    }
+    return false;
 }
 
 bool String_op_equal(struct String* this, struct SimpleString* that)

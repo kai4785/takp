@@ -32,12 +32,12 @@ void Action_dtor(struct Action* this)
 }
 
 enum {
-    Split0,
-    Split1,
-    Split2,
-    Split3,
+    State0,
+    State1,
+    State2,
+    State3,
 };
-void parseVerb(struct Action* this, struct String message)
+void parseDamage(struct Action* this, struct String message)
 {
     struct String here;
     String_ctor(&here);
@@ -108,7 +108,7 @@ void parseVerb(struct Action* this, struct String message)
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
     //   found target length, looking for damage value
-    int state = Split0;
+    int state = State0;
     for(size_t i = 0; i < message.length; i++)
     {
         // If we found the start of a word
@@ -119,7 +119,7 @@ void parseVerb(struct Action* this, struct String message)
                 message.data + i,
                 message.length - i
             );
-            if(state == Split0)
+            if(state == State0)
             {
                 if(here.startsWith(&here, &nonMeleeVerb1) || here.startsWith(&here, &nonMeleeVerb2))
                 {
@@ -130,7 +130,7 @@ void parseVerb(struct Action* this, struct String message)
                     this->verb.data = message.data + i + length;
                     this->verb.length = 9;
                     i += length;
-                    state = Split2;
+                    state = State2;
                 }
                 else if(here.startsWith(&here, &healedVerb))
                 {
@@ -140,7 +140,7 @@ void parseVerb(struct Action* this, struct String message)
                     this->verb.data = message.data + i + 1;
                     this->verb.length = healedVerb.length - 2; // No spaces
                     i += healedVerb.length - 2;
-                    state = Split2;
+                    state = State2;
                 }
                 else
                 {
@@ -156,20 +156,20 @@ void parseVerb(struct Action* this, struct String message)
                             this->verb.length = verbs[j].length - 2; // No spaces
                             this->target.data = this->verb.data + this->verb.length + 1; // Skip the space
                             // Still need target length;
-                            state = Split1;
+                            state = State1;
                             i += verbs[j].length;
                             break;
                         }
                     }
                 }
             }
-            else if(state == Split1 || state == Split2)
+            else if(state == State1 || state == State2)
             {
                 // Now we're looking for the end of target, by searching for "for"
                 struct SimpleString _for_ = { .data = " for ", .length = 5};
                 if(here.startsWith(&here, &_for_))
                 {
-                    if(state == Split1)
+                    if(state == State1)
                         this->target.length = message.data + i - this->target.data;
                     struct String damage;
                     String_ctorHold(&damage, message.data + i + _for_.length, message.length - i - _for_.length);
@@ -207,14 +207,52 @@ void Action_parse(struct Action* this, struct String message)
 {
     struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
     struct SimpleString pointOfDamage = { .data = " point of damage.", .length = 17 };
+    struct SimpleString died = { .data = " died.", .length = 6 };
     if(message.endsWith(&message, &pointsOfDamage))
     {
         message.length -= pointsOfDamage.length;
-        parseVerb(this, message);
+        parseDamage(this, message);
     }
     else if(message.endsWith(&message, &pointOfDamage))
     {
         message.length -= pointOfDamage.length;
-        parseVerb(this, message);
+        parseDamage(this, message);
+    }
+    else if(message.data[message.length - 1] == '!')
+    {
+        struct SimpleString have_slain = { .data = " have slain ", .length = 12 };
+        struct SimpleString has_been_slain_by = { .data = " has been slain by ", .length = 19 };
+        struct SimpleString have_been_slain_by = { .data = " have been slain by ", .length = 20 };
+        struct SimpleString found = {0};
+        if(message.find(&message, &have_slain, &found))
+        {
+            this->type = DEATH;
+            this->source.hold(&this->source,
+                message.data, (size_t)(found.data - message.data));
+            this->target.hold(&this->target,
+                message.data + this->source.length + found.length,
+                message.length - 1 - this->source.length - found.length);
+            this->verb.hold(&this->verb, found.data + 1, found.length - 2);
+        }
+        else if(
+            (message.find(&message, &has_been_slain_by, &found)) ||
+            (message.find(&message, &have_been_slain_by, &found)))
+        {
+            this->type = DEATH;
+            this->target.hold(&this->target,
+                message.data, (size_t)(found.data - message.data));
+            this->source.hold(&this->source,
+                message.data + this->target.length + found.length,
+                message.length - 1 - this->target.length - found.length);
+            this->verb.hold(&this->verb, found.data + 1, found.length - 2);
+        }
+    }
+    else if(message.endsWith(&message, &died))
+    {
+        this->type = DEATH;
+        this->target.hold(&this->target,
+            message.data, message.length - died.length);
+        this->verb.hold(&this->verb,
+            message.data + this->target.length + 1, died.length - 2);
     }
 }

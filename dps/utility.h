@@ -31,6 +31,7 @@ struct String
     int  (*cmp)          (struct String* this, char* data, size_t length);
     bool (*startsWith)   (struct String* this, struct SimpleString* that);
     bool (*endsWith)     (struct String* this, struct SimpleString* that);
+    bool (*find)         (struct String* this, struct SimpleString* that, struct SimpleString* found);
     bool (*op_equal)     (struct String* this, struct SimpleString* that);
     bool (*fromInt)      (struct String* this, int64_t value);
     int64_t (*toInt)     (struct String* this);

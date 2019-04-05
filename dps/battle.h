@@ -26,6 +26,12 @@ struct Fight
     void (*dtor)(struct Fight* this);
 };
 
+struct Death
+{
+    int64_t sourceId;
+    int64_t targetId;
+};
+
 struct Battle;
 void Battle_ctor(struct Battle* this);
 struct Battle* Battle_new();
@@ -38,6 +44,7 @@ struct Battle
 #endif
     struct Array m_pc;
     struct Array m_fight;
+    struct Array m_death;
     int64_t m_start;
     int64_t m_end;
     int64_t m_expire;
@@ -52,6 +59,7 @@ struct Battle
     void (*melee)(struct Battle* this, int64_t now, struct Action* action);
     void (*magic)(struct Battle* this, int64_t now, struct Action* action);
     void (*heal)(struct Battle* this, int64_t now, struct Action* action);
+    void (*death)(struct Battle* this, int64_t now, struct Action* action);
     void (*dtor)(struct Battle* this);
 };
 

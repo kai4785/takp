@@ -37,6 +37,7 @@ void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
+void Battle_death(struct Battle* this, int64_t now, struct Action* action);
 
 // Constructors
 void Fight_ctor(struct Fight* this)
@@ -108,10 +109,12 @@ void Battle_ctor(struct Battle* this)
         .melee = &Battle_melee,
         .magic = &Battle_magic,
         .heal = &Battle_heal,
+        .death = &Battle_death,
         .dtor = &Battle_dtor
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
     Array_ctor(&this->m_fight, sizeof(struct Fight));
+    Array_ctor(&this->m_death, sizeof(struct Death));
     this->m_pc.datum_dtor = Battle_String_dtor;
 }
 
@@ -133,6 +136,7 @@ void Battle_dtor(struct Battle *this)
     // Clear out all of the Strings
     this->m_pc.dtor(&this->m_pc);
     this->m_fight.dtor(&this->m_fight);
+    this->m_death.dtor(&this->m_death);
 }
 
 void Battle_start(struct Battle* this, int64_t now)
@@ -178,6 +182,7 @@ void Battle_reset(struct Battle* this)
     this->m_totalHeals = 0;
     this->m_pc.clear(&this->m_pc);
     this->m_fight.clear(&this->m_fight);
+    this->m_death.clear(&this->m_death);
 }
 
 void Battle_report(struct Battle* this)
@@ -198,6 +203,7 @@ void Battle_report(struct Battle* this)
     #define break_str "-------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
     #define fight_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define death_format "%-35.*s %-30.*s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
@@ -213,6 +219,7 @@ void Battle_report(struct Battle* this)
             bool printTarget = (!linesPrinted || !config->reportByTarget);
             if(id != pcId)
                 continue;
+            // TODO: Handle Ids that are less than 0
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
             printf(fight_format,
@@ -243,7 +250,34 @@ void Battle_report(struct Battle* this)
         if(linesPrinted > 0)
             printf("%s\n", break_str);
     }
-    printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
+    if(this->m_totalHeals > 0)
+    {
+        printf("Total Heals: %"PRId64"\n", this->m_totalHeals);
+        printf("%s\n", break_str);
+    }
+    if(this->m_death.size > 0)
+    {
+        printf("Deaths: %zu\n", this->m_death.size);
+        printf(death_format, 6, "Target", 6, "Slayer");
+        printf("%s\n", break_str);
+        for(size_t i = 0; i < this->m_death.size; i++)
+        {
+            struct Death* death = this->m_death.at(&this->m_death, i);
+            struct String* source = this->m_pc.at(&this->m_pc, death->sourceId);
+            struct String* target = this->m_pc.at(&this->m_pc, death->targetId);
+            if(source)
+            {
+                printf(death_format,
+                    (int)target->length, target->data,
+                    (int)source->length, source->data);
+            }
+            else
+            {
+                printf(death_format, (int)target->length, target->data, 0, "");
+            }
+        }
+        printf("%s\n", break_str);
+    }
     printf("\n");
 }
 
@@ -344,5 +378,15 @@ void Battle_heal(struct Battle* this, int64_t now, struct Action* action)
 {
     this->start(this, now);
     this->m_totalHeals += action->damage;
+    Battle_keepalive(this, now);
+}
+
+void Battle_death(struct Battle* this, int64_t now, struct Action* action)
+{
+    this->start(this, now);
+    struct Death death = {0};
+    death.sourceId = Battle_getPCIndex(this, &action->source);
+    death.targetId = Battle_getPCIndex(this, &action->target);
+    this->m_death.push(&this->m_death, &death);
     Battle_keepalive(this, now);
 }

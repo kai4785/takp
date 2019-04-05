@@ -102,6 +102,10 @@ void tellme(struct SimpleString line)
             battle->heal(battle, dateseconds, &action);
             break;
         }
+        case DEATH:
+        {
+            battle->death(battle, dateseconds, &action);
+        }
         case UNKNOWN:
         default:
         {
