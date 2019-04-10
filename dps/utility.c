@@ -8,7 +8,7 @@
 void String_hold      (struct String* this, char* data, size_t length);
 void String_dup       (struct String* this, char* data, size_t length);
 void String_cpy       (struct String* this, char* data, size_t length);
-int String_cmp       (struct String* this, char* data, size_t length);
+bool String_cmp       (struct String* this, char* data, size_t length);
 bool String_startsWith(struct String* this, struct SimpleString* that);
 bool String_endsWith  (struct String* this, struct SimpleString* that);
 bool String_find      (struct String* this, struct SimpleString* that, struct SimpleString* found);
@@ -56,6 +56,26 @@ void String_ctorCopy(struct String* this, struct SimpleString* that)
 }
 
 // Member function implementations
+bool String_ncmp(const char* lhs, const char* rhs, size_t length)
+{
+    const char* end = lhs + length;
+    while(lhs < end)
+    {
+        if(*lhs++ != *rhs++)
+            return false;
+    }
+    return true;
+}
+
+void String_ncpy(char* dest, const char* src, size_t length)
+{
+    const char* end = dest + length;
+    while(dest < end)
+    {
+        *dest++ = *src++;
+    }
+}
+
 void String_hold(struct String* this, char* data, size_t length)
 {
     if(this->ownsPtr)
@@ -80,27 +100,27 @@ void String_dup(struct String* this, char* data, size_t length)
 
 void String_cpy(struct String* this, char* data, size_t length)
 {
-    this->data = strncpy(this->data, data, length);
+    String_ncpy(this->data, data, length);
     this->length = length;
 }
 
-int String_cmp(struct String* this, char* data, size_t length)
+bool String_cmp(struct String* this, char* data, size_t length)
 {
-    return strncmp(this->data, data, length);
+    return String_ncmp(this->data, data, length);
 }
 
 bool String_startsWith(struct String* this, struct SimpleString* that)
 {
     if(this->length < that->length)
         return false;
-    return (strncmp(this->data, that->data, that->length) == 0);
+    return String_ncmp(this->data, that->data, that->length);
 }
 
 bool String_endsWith(struct String* this, struct SimpleString* that)
 {
     if(this->length < that->length)
         return false;
-    return (strncmp(this->data + this->length - that->length, that->data, that->length) == 0);
+    return String_ncmp(this->data + this->length - that->length, that->data, that->length);
 }
 
 bool String_find(struct String* this, struct SimpleString* that, struct SimpleString* found)
@@ -109,7 +129,7 @@ bool String_find(struct String* this, struct SimpleString* that, struct SimpleSt
         return false;
     for(size_t i = 0; i < this->length - that->length; i++)
     {
-        if(this->data[i] == that->data[0] && strncmp(this->data + i, that->data, that->length) == 0)
+        if(this->data[i] == that->data[0] && String_ncmp(this->data + i, that->data, that->length))
         {
             *found = (struct SimpleString){ .data = this->data + i, .length = that->length };
             return true;
@@ -122,7 +142,7 @@ bool String_op_equal(struct String* this, struct SimpleString* that)
 {
     if(this->length != that->length)
         return false;
-    return (strncmp(this->data, that->data, that->length) == 0);
+    return String_ncmp(this->data, that->data, that->length);
 }
 
 bool String_fromInt(struct String* this, int64_t value)

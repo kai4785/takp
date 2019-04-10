@@ -33,6 +33,7 @@ else()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-braces")
     message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
     if(ENABLE_PROFILING)
+        # NOTE: gprof dps gmon.out | vim -R -
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
     endif()
     if(ENABLE_CODE_COVERAGE)

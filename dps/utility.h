@@ -28,7 +28,7 @@ struct String
     void (*hold)         (struct String* this, char* data, size_t length);
     void (*dup)          (struct String* this, char* data, size_t length);
     void (*cpy)          (struct String* this, char* data, size_t length);
-    int  (*cmp)          (struct String* this, char* data, size_t length);
+    bool (*cmp)          (struct String* this, char* data, size_t length);
     bool (*startsWith)   (struct String* this, struct SimpleString* that);
     bool (*endsWith)     (struct String* this, struct SimpleString* that);
     bool (*find)         (struct String* this, struct SimpleString* that, struct SimpleString* found);

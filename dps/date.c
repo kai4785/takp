@@ -68,29 +68,29 @@ int64_t parseDate(const struct SimpleString datestring)
     // Month
     // If this proves to be slow, parse each char one at a time.
     conv.hold(&conv, datestring.data, 3);
-    if(conv.cmp(&conv, "Jan", 3) == 0)
+    if(conv.cmp(&conv, "Jan", 3))
         value.month = 1;
-    else if(conv.cmp(&conv, "Feb", 3) == 0)
+    else if(conv.cmp(&conv, "Feb", 3))
         value.month = 2;
-    else if(conv.cmp(&conv, "Mar", 3) == 0)
+    else if(conv.cmp(&conv, "Mar", 3))
         value.month = 3;
-    else if(conv.cmp(&conv, "Apr", 3) == 0)
+    else if(conv.cmp(&conv, "Apr", 3))
         value.month = 4;
-    else if(conv.cmp(&conv, "May", 3) == 0)
+    else if(conv.cmp(&conv, "May", 3))
         value.month = 5;
-    else if(conv.cmp(&conv, "Jun", 3) == 0)
+    else if(conv.cmp(&conv, "Jun", 3))
         value.month = 6;
-    else if(conv.cmp(&conv, "Jul", 3) == 0)
+    else if(conv.cmp(&conv, "Jul", 3))
         value.month = 7;
-    else if(conv.cmp(&conv, "Aug", 3) == 0)
+    else if(conv.cmp(&conv, "Aug", 3))
         value.month = 8;
-    else if(conv.cmp(&conv, "Sep", 3) == 0)
+    else if(conv.cmp(&conv, "Sep", 3))
         value.month = 9;
-    else if(conv.cmp(&conv, "Oct", 3) == 0)
+    else if(conv.cmp(&conv, "Oct", 3))
         value.month = 10;
-    else if(conv.cmp(&conv, "Nov", 3) == 0)
+    else if(conv.cmp(&conv, "Nov", 3))
         value.month = 11;
-    else if(conv.cmp(&conv, "Dec", 3) == 0)
+    else if(conv.cmp(&conv, "Dec", 3))
         value.month = 12;
     // Year
     conv.hold(&conv, datestring.data + 16, 4);
