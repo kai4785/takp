@@ -61,50 +61,33 @@ void tellme(struct SimpleString line)
         }
         case MELEE:
         {
-            if(config->verbosity > 0)
-            {
-                printf("Melee: %.*s:\n", (int)message.length, message.data);
-                printf("      ");
-                printf(" %.*s", (int)action.source.length, action.source.data);
-                printf("|%.*s", (int)action.verb.length, action.verb.data);
-                printf("|%.*s", (int)action.target.length, action.target.data);
-                printf("|%"PRId64"", action.damage);
-                printf("\n");
-            }
             battle->melee(battle, dateseconds, &action);
+            break;
+        }
+        case CRIT:
+        {
+            battle->crit(battle, dateseconds, &action);
+            break;
+        }
+        case CRIP:
+        {
+            battle->crip(battle, dateseconds, &action);
             break;
         }
         case MAGIC:
         {
-            if(config->verbosity > 0)
-            {
-                printf("Magic: %.*s:\n", (int)message.length, message.data);
-                printf("      ");
-                printf(" %.*s", (int)action.target.length, action.target.data);
-                printf("|%.*s", (int)action.verb.length, action.verb.data);
-                printf("|%"PRId64"", action.damage);
-                printf("\n");
-            }
             battle->magic(battle, dateseconds, &action);
             break;
         }
         case HEAL:
         {
-            if(config->verbosity > 0)
-            {
-                printf("Heal : %.*s:\n", (int)message.length, message.data);
-                printf("      ");
-                printf(" %.*s", (int)action.target.length, action.target.data);
-                printf("|%.*s", (int)action.verb.length, action.verb.data);
-                printf("|%"PRId64"", action.damage);
-                printf("\n");
-            }
             battle->heal(battle, dateseconds, &action);
             break;
         }
         case DEATH:
         {
             battle->death(battle, dateseconds, &action);
+            break;
         }
         case UNKNOWN:
         default:

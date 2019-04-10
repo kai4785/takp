@@ -14,7 +14,7 @@ enum ActionType
     MAGIC,
     HEAL,
     CRIT,
-    CRIPP,
+    CRIP,
     DEATH,
     ZONE
 };

@@ -427,7 +427,7 @@ args = argp.parse_args()
 if args.pc:
     pc_list = args.pc + ['[Yy][Oo][Uu]']
 else:
-    pc_list = ['[A-Za-z `]+']
+    pc_list = ['[0-9A-Za-z `]+']
 since = None
 today = date.today()
 with suppress(ValueError):

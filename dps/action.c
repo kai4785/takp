@@ -209,7 +209,7 @@ void parseDamage(struct Action* this, struct String message)
 void Action_parse(struct Action* this, struct String message)
 {
     struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
-    struct SimpleString pointOfDamage = { .data = " point of damage.", .length = 17 };
+    struct SimpleString pointOfDamage =  { .data = " point of damage.",  .length = 17 };
     struct SimpleString died = { .data = " died.", .length = 6 };
     if(message.endsWith(&message, &pointsOfDamage))
     {
@@ -220,6 +220,29 @@ void Action_parse(struct Action* this, struct String message)
     {
         message.length -= pointOfDamage.length;
         parseDamage(this, message);
+    }
+    else if(message.data[message.length - 1] == ')')
+    {
+        struct SimpleString critical_hit   = { .data = " Scores a critical hit!(", .length = 24 };
+        struct SimpleString crippling_blow = { .data = " lands a Crippling Blow!(", .length = 25 };
+        struct SimpleString found = {0};
+        if(message.find(&message, &critical_hit, &found))
+        {
+            this->type = CRIT;
+        }
+        else if(message.find(&message, &crippling_blow, &found))
+        {
+            this->type = CRIP;
+        }
+        if(this->type != UNKNOWN)
+        {
+            this->source.hold(&this->source, message.data, (size_t)(found.data - message.data));
+            size_t damageStart = this->source.length + found.length;
+            size_t damageSize = message.length - 1 - damageStart;
+            struct String damage = {0};
+            String_ctorHold(&damage, message.data + damageStart, damageSize);
+            this->damage = damage.toInt(&damage);
+        }
     }
     else if(message.data[message.length - 1] == '!')
     {

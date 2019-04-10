@@ -54,6 +54,8 @@ struct Battle
     int64_t m_expire;
     int64_t m_totalDamage;
     int64_t m_totalHeals;
+    int64_t m_lastCrit;
+    int64_t m_lastCrip;
     void (*start)(struct Battle* this, int64_t now);
     void (*reset)(struct Battle* this);
     bool (*inProgress)(struct Battle* this);
@@ -61,6 +63,8 @@ struct Battle
     int64_t (*seconds)(struct Battle* this);
     void (*report)(struct Battle* this);
     void (*melee)(struct Battle* this, int64_t now, struct Action* action);
+    void (*crit)(struct Battle* this, int64_t now, struct Action* action);
+    void (*crip)(struct Battle* this, int64_t now, struct Action* action);
     void (*magic)(struct Battle* this, int64_t now, struct Action* action);
     void (*heal)(struct Battle* this, int64_t now, struct Action* action);
     void (*death)(struct Battle* this, int64_t now, struct Action* action);

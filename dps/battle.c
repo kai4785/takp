@@ -32,6 +32,8 @@ bool Battle_isOver(struct Battle *this, int64_t now);
 int64_t Battle_seconds(struct Battle *this);
 void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
+void Battle_crit(struct Battle* this, int64_t now, struct Action* action);
+void Battle_crip(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 void Battle_death(struct Battle* this, int64_t now, struct Action* action);
@@ -104,6 +106,8 @@ void Battle_ctor(struct Battle* this)
         .seconds = &Battle_seconds,
         .report = &Battle_report,
         .melee = &Battle_melee,
+        .crit = &Battle_crit,
+        .crip = &Battle_crip,
         .magic = &Battle_magic,
         .heal = &Battle_heal,
         .death = &Battle_death,
@@ -177,6 +181,8 @@ void Battle_reset(struct Battle* this)
     this->m_expire = 0;
     this->m_totalDamage = 0;
     this->m_totalHeals = 0;
+    this->m_lastCrit = 0;
+    this->m_lastCrip = 0;
     this->m_pc.clear(&this->m_pc);
     this->m_fight.clear(&this->m_fight);
     this->m_death.clear(&this->m_death);
@@ -199,7 +205,11 @@ void Battle_report(struct Battle* this)
     printf("]:\n");
     #define break_str "-------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
-    #define fight_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define melee_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define backstab_format "%-15s %-50s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define crit_format backstab_format
+    #define crip_format backstab_format
+    #define total_format "%-15s %-50s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     #define death_format "%-35.*s %-30.*s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
@@ -220,7 +230,7 @@ void Battle_report(struct Battle* this)
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
             int64_t fightSeconds = fight->seconds(fight);
-            printf(fight_format,
+            printf(melee_format,
                 (int)source->length, printSource ? source->data : "",
                 (int)target->length, printTarget ? target->data : "",
                 fightSeconds,
@@ -235,48 +245,52 @@ void Battle_report(struct Battle* this)
             linesPrinted++;
             if(fight->m_backstab.hits > 0)
             {
-                printf(fight_format,
-                    0, "",
-                    10, "+backstabs",
-                    fightSeconds,
+                printf(backstab_format,
+                    "",
+                    "+backstabs",
+                    "",
                     fight->m_backstab.hits,
                     hps(fight->m_backstab, fightSeconds),
                     fight->m_backstab.damage,
                     dph(fight->m_backstab),
                     dps(fight->m_backstab, fightSeconds)
                 );
+                linesPrinted++;
             }
             if(fight->m_crit.hits > 0)
             {
-                printf(fight_format,
-                    0, "",
-                    14, "+critical hits",
-                    fightSeconds,
+                printf(crit_format,
+                    "",
+                    "+critical hits",
+                    "",
                     fight->m_crit.hits,
                     hps(fight->m_crit, fightSeconds),
                     fight->m_crit.damage,
                     dph(fight->m_crit),
                     dps(fight->m_crit, fightSeconds)
                 );
+                linesPrinted++;
             }
             if(fight->m_crip.hits > 0)
             {
-                printf(fight_format,
-                    0, "",
-                    16, "+crippling blows",
-                    fightSeconds,
+                printf(crip_format,
+                    "",
+                    "+crippling blows",
+                    "",
                     fight->m_crip.hits,
                     hps(fight->m_crip, fightSeconds),
                     fight->m_crip.damage,
                     dph(fight->m_crip),
                     dps(fight->m_crip, fightSeconds)
                 );
+                linesPrinted++;
             }
         }
-        if(linesPrinted > 1)
-            printf(fight_format,
-                0, "",
-                6, "+Total",
+        if(linesPrinted > 0)
+        {
+            printf(total_format,
+                "",
+                "+Battle",
                 battleSeconds,
                 totalHits,
                 (double)totalHits / (double)battleSeconds,
@@ -284,8 +298,8 @@ void Battle_report(struct Battle* this)
                 (double)totalDamage / (double)totalHits,
                 (double)totalDamage / (double)battleSeconds
             );
-        if(linesPrinted > 0)
             printf("%s\n", break_str);
+        }
     }
     if(this->m_totalHeals > 0)
     {
@@ -405,9 +419,35 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
         fight->m_backstab.hits++;
         fight->m_backstab.damage += action->damage;
     }
+    else if(this->m_lastCrit > 0)
+    {
+        fight->m_crit.hits++;
+        fight->m_crit.damage += action->damage;
+        this->m_lastCrit = 0;
+    }
+    else if(this->m_lastCrip > 0)
+    {
+        fight->m_crip.hits++;
+        fight->m_crip.damage += action->damage;
+        this->m_lastCrip = 0;
+    }
 
     this->m_totalDamage += action->damage;
     Battle_keepalive(this, now);
+}
+
+void Battle_crit(struct Battle* this, int64_t now, struct Action* action)
+{
+    // TODO: So long as the crit message is *always* the line before the
+    // associated melee damage, this is fine.
+    this->m_lastCrit = action->damage;
+}
+
+void Battle_crip(struct Battle* this, int64_t now, struct Action* action)
+{
+    // TODO: So long as the crip message is *always* the line before the
+    // associated melee damage, this is fine.
+    this->m_lastCrip = action->damage;
 }
 
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action)
