@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+struct SimpleString g_empty = { .data = "", .length = 0 };
+
 // Member function declarations
 void String_hold      (struct String* this, char* data, size_t length);
 void String_dup       (struct String* this, char* data, size_t length);

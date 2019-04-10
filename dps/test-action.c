@@ -65,7 +65,7 @@ int testActions()
     Action_ctor(&action);
 
     action.type = HEAL;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have been healed");
     action.damage = 2090;
@@ -81,7 +81,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("a blizzard hunter");
     action.verb = CONST_STRING("non-melee");
     action.damage = 8;
@@ -97,7 +97,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 300;
@@ -105,7 +105,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -113,7 +113,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 130;
@@ -121,7 +121,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -153,14 +153,19 @@ int testActions()
     errors += validateAction(action);
 
     action.type = DEATH;
-    action.source.clear(&action.source);
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
     action.target = CONST_STRING("Player1");
     action.verb = CONST_STRING("died");
     action.damage = 0;
     action.message = "Player1 died.";
     errors += validateAction(action);
 
-    // TODO: Handle finishing blows
+    // TODO:
+    // Backstabs
+    // Critical hits
+    // Crippling blows
+    // Finishing blows
+
     action.dtor(&action);
     return errors;
 }

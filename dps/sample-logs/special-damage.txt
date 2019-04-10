@@ -1,0 +1,5 @@
+[Tue Mar 16 00:00:00 1999] Player1 backstabs Player2 for 1 point of damage.
+[Tue Mar 16 00:00:01 1999] Player1 Scores a critical hit!(2)
+[Tue Mar 16 00:00:01 1999] Player1 hits Player2 for 2 points of damage.
+[Tue Mar 16 00:00:02 1999] Player1 lands a Crippling Blow!(3)
+[Tue Mar 16 00:00:02 1999] Player1 hits Player2 for 3 points of damage.

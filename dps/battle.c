@@ -22,9 +22,6 @@ struct Battle* battleInstance()
 // Fight
 void Fight_dtor(struct Fight *this);
 int64_t Fight_seconds(struct Fight *this);
-double Fight_dps(struct Fight *this);
-double Fight_hps(struct Fight *this);
-double Fight_dph(struct Fight *this);
 // Battle
 void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
@@ -39,6 +36,22 @@ void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 void Battle_death(struct Battle* this, int64_t now, struct Action* action);
 
+// Helper Functions
+double dps(struct Damage damage, int64_t seconds)
+{
+    return (double)(damage.damage) / (double)(seconds);
+}
+
+double hps(struct Damage damage, int64_t seconds)
+{
+    return (double)(damage.hits) / (double)(seconds);
+}
+
+double dph(struct Damage damage)
+{
+    return (double)(damage.damage) / (double)(damage.hits);
+}
+
 // Constructors
 void Fight_ctor(struct Fight* this)
 {
@@ -47,12 +60,11 @@ void Fight_ctor(struct Fight* this)
         .targetId = 0,
         .start = 0,
         .end = 0,
-        .hits = 0,
-        .damage = 0,
+        .m_melee = {0},
+        .m_backstab = {0},
+        .m_crit = {0},
+        .m_crip = {0},
         .seconds = &Fight_seconds,
-        .dps = &Fight_dps,
-        .hps = &Fight_hps,
-        .dph = &Fight_dph,
         .dtor = &Fight_dtor
     };
 }
@@ -69,21 +81,6 @@ int64_t Fight_seconds(struct Fight* this)
     if(this->end == this->start)
         return 1;
     return this->end - this->start;
-}
-
-double Fight_dps(struct Fight* this)
-{
-    return (double)(this->damage) / (double)(this->seconds(this));
-}
-
-double Fight_hps(struct Fight* this)
-{
-    return (double)(this->hits) / (double)(this->seconds(this));
-}
-
-double Fight_dph(struct Fight* this)
-{
-    return (double)(this->damage) / (double)(this->hits);
 }
 
 void Battle_String_dtor(void* string)
@@ -222,19 +219,59 @@ void Battle_report(struct Battle* this)
             // TODO: Handle Ids that are less than 0
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
+            int64_t fightSeconds = fight->seconds(fight);
             printf(fight_format,
                 (int)source->length, printSource ? source->data : "",
                 (int)target->length, printTarget ? target->data : "",
-                fight->seconds(fight),
-                fight->hits,
-                fight->hps(fight),
-                fight->damage,
-                fight->dph(fight),
-                fight->dps(fight)
+                fightSeconds,
+                fight->m_melee.hits,
+                hps(fight->m_melee, fightSeconds),
+                fight->m_melee.damage,
+                dph(fight->m_melee),
+                dps(fight->m_melee, fightSeconds)
             );
-            totalHits += fight->hits;
-            totalDamage += fight->damage;
+            totalHits += fight->m_melee.hits;
+            totalDamage += fight->m_melee.damage;
             linesPrinted++;
+            if(fight->m_backstab.hits > 0)
+            {
+                printf(fight_format,
+                    0, "",
+                    10, "+backstabs",
+                    fightSeconds,
+                    fight->m_backstab.hits,
+                    hps(fight->m_backstab, fightSeconds),
+                    fight->m_backstab.damage,
+                    dph(fight->m_backstab),
+                    dps(fight->m_backstab, fightSeconds)
+                );
+            }
+            if(fight->m_crit.hits > 0)
+            {
+                printf(fight_format,
+                    0, "",
+                    14, "+critical hits",
+                    fightSeconds,
+                    fight->m_crit.hits,
+                    hps(fight->m_crit, fightSeconds),
+                    fight->m_crit.damage,
+                    dph(fight->m_crit),
+                    dps(fight->m_crit, fightSeconds)
+                );
+            }
+            if(fight->m_crip.hits > 0)
+            {
+                printf(fight_format,
+                    0, "",
+                    16, "+crippling blows",
+                    fightSeconds,
+                    fight->m_crip.hits,
+                    hps(fight->m_crip, fightSeconds),
+                    fight->m_crip.damage,
+                    dph(fight->m_crip),
+                    dps(fight->m_crip, fightSeconds)
+                );
+            }
         }
         if(linesPrinted > 1)
             printf(fight_format,
@@ -360,9 +397,14 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
     int64_t targetId = Battle_getPCIndex(this, &action->target);
 
     struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
-    fight->hits++;
-    fight->damage += action->damage;
+    fight->m_melee.hits++;
+    fight->m_melee.damage += action->damage;
     fight->end = now;
+    if(action->verb.cmp(&action->verb, "backstab", 8))
+    {
+        fight->m_backstab.hits++;
+        fight->m_backstab.damage += action->damage;
+    }
 
     this->m_totalDamage += action->damage;
     Battle_keepalive(this, now);

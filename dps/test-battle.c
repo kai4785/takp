@@ -26,11 +26,11 @@ int main()
 
     // Make sure the fight matches the action(s) so far
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->hits, 1);
-    test_uint_eq(fight->damage, 1);
-    test_uint_eq(fight->dps(fight), 1);
-    test_uint_eq(fight->hps(fight), 1);
-    test_uint_eq(fight->dph(fight), 1);
+    test_uint_eq(fight->m_melee.hits, 1);
+    test_uint_eq(fight->m_melee.damage, 1);
+    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 1);
+    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 1);
+    test_uint_eq(dph(fight->m_melee), 1);
 
     // Hit them again, inside the same second
     battle->melee(battle, now, &action);
@@ -38,11 +38,11 @@ int main()
 
     // Should be the same fight
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->hits, 2);
-    test_uint_eq(fight->damage, 2);
-    test_uint_eq(fight->dps(fight), 2);
-    test_uint_eq(fight->hps(fight), 2);
-    test_uint_eq(fight->dph(fight), 1);
+    test_uint_eq(fight->m_melee.hits, 2);
+    test_uint_eq(fight->m_melee.damage, 2);
+    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 2);
+    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 2);
+    test_uint_eq(dph(fight->m_melee), 1);
 
     // New fight, Someone Else hits back!
     action.type = MELEE;
@@ -59,11 +59,17 @@ int main()
 
     // Should look like the first fight
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->hits, 1);
-    test_uint_eq(fight->damage, 1);
-    test_uint_eq(fight->dps(fight), 1);
-    test_uint_eq(fight->hps(fight), 1);
-    test_uint_eq(fight->dph(fight), 1);
+    test_uint_eq(fight->m_melee.hits, 1);
+    test_uint_eq(fight->m_melee.damage, 1);
+    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 1);
+    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 1);
+    test_uint_eq(dph(fight->m_melee), 1);
+
+    // TODO:
+    // Backstabs
+    // Critical hits
+    // Crippling blows
+    // Finishing blows
 
     return errors;
 }

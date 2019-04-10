@@ -8,6 +8,16 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+struct Damage
+{
+    int64_t hits;
+    int64_t damage;
+};
+
+double dps(struct Damage damage, int64_t seconds);
+double hps(struct Damage damage, int64_t seconds);
+double dph(struct Damage damage);
+
 struct Fight;
 void Fight_ctor(struct Fight* this);
 struct Fight* Fight_new();
@@ -17,12 +27,11 @@ struct Fight
     int64_t targetId;
     int64_t start;
     int64_t end;
-    int64_t hits;
-    int64_t damage;
+    struct Damage m_melee;
+    struct Damage m_backstab;
+    struct Damage m_crit;
+    struct Damage m_crip;
     int64_t (*seconds)(struct Fight* this);
-    double (*dps)(struct Fight* this);
-    double (*hps)(struct Fight* this);
-    double (*dph)(struct Fight* this);
     void (*dtor)(struct Fight* this);
 };
 
@@ -37,11 +46,6 @@ void Battle_ctor(struct Battle* this);
 struct Battle* Battle_new();
 struct Battle
 {
-#if 0
-    .deaths = defaultdict(dict)
-    .cripps = defaultdict(int)
-    .crits = defaultdict(int)
-#endif
     struct Array m_pc;
     struct Array m_fight;
     struct Array m_death;

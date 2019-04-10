@@ -49,4 +49,6 @@ static inline struct String _CONST_STRING(char* data, size_t length)
     return tmp;
 }
 
+extern struct SimpleString g_empty;
+
 #endif // UTILITY_H

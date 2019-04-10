@@ -60,6 +60,7 @@ void parseDamage(struct Action* this, struct String message)
                 String_ctorHold(&damage, message.data + i, message.length - i);
                 // This is a special AE type message; we just parse it and return, or break and continue;
                 this->type = MAGIC;
+                this->source.hold(&this->source, g_empty.data, g_empty.length);
                 this->target.hold(&this->target, message.data, 3); // These lines begin with "You"
                 this->verb.hold(&this->verb, aeVerb.data + 1, aeVerb.length - 2); // Trim leading/trailing slash
                 this->damage = damage.toInt(&damage);
@@ -125,6 +126,7 @@ void parseDamage(struct Action* this, struct String message)
                 {
                     size_t length = (here.data[2] == 'a') ? nonMeleeVerb1.length : nonMeleeVerb2.length;
                     this->type = MAGIC;
+                    this->source.hold(&this->source, g_empty.data, g_empty.length);
                     this->target.data = message.data;
                     this->target.length = i;
                     this->verb.data = message.data + i + length;
@@ -135,6 +137,7 @@ void parseDamage(struct Action* this, struct String message)
                 else if(here.startsWith(&here, &healedVerb))
                 {
                     this->type = HEAL;
+                    this->source.hold(&this->source, g_empty.data, g_empty.length);
                     this->target.data = message.data;
                     this->target.length = i;
                     this->verb.data = message.data + i + 1;

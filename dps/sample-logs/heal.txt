@@ -1,0 +1,6 @@
+[Tue Mar 16 05:00:00 1999] Player1 says, 'Heals'
+[Tue Mar 16 05:00:00 1999] Player1 hits YOU for 1 point of damage.
+[Tue Mar 16 05:00:00 1999] You have been healed for 1 point of damage.
+[Tue Mar 16 05:00:00 1999] You have been healed for 2 points of damage.
+[Tue Mar 16 05:00:00 1999] You have been healed for 3 points of damage.
+[Tue Mar 16 06:00:00 1999] Player2 performs an exceptional heal! (15000)
