@@ -419,13 +419,13 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
         fight->m_backstab.hits++;
         fight->m_backstab.damage += action->damage;
     }
-    else if(this->m_lastCrit > 0)
+    else if(this->m_lastCrit == action->damage)
     {
         fight->m_crit.hits++;
         fight->m_crit.damage += action->damage;
         this->m_lastCrit = 0;
     }
-    else if(this->m_lastCrip > 0)
+    else if(this->m_lastCrip == action->damage)
     {
         fight->m_crip.hits++;
         fight->m_crip.damage += action->damage;

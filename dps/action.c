@@ -208,18 +208,29 @@ void parseDamage(struct Action* this, struct String message)
 
 void Action_parse(struct Action* this, struct String message)
 {
-    struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
-    struct SimpleString pointOfDamage =  { .data = " point of damage.",  .length = 17 };
-    struct SimpleString died = { .data = " died.", .length = 6 };
-    if(message.endsWith(&message, &pointsOfDamage))
+    if(message.data[message.length - 1] == '.')
     {
-        message.length -= pointsOfDamage.length;
-        parseDamage(this, message);
-    }
-    else if(message.endsWith(&message, &pointOfDamage))
-    {
-        message.length -= pointOfDamage.length;
-        parseDamage(this, message);
+        struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
+        struct SimpleString pointOfDamage =  { .data = " point of damage.",  .length = 17 };
+        struct SimpleString died = { .data = " died.", .length = 6 };
+        if(message.endsWith(&message, &pointsOfDamage))
+        {
+            message.length -= pointsOfDamage.length;
+            parseDamage(this, message);
+        }
+        else if(message.endsWith(&message, &pointOfDamage))
+        {
+            message.length -= pointOfDamage.length;
+            parseDamage(this, message);
+        }
+        else if(message.endsWith(&message, &died))
+        {
+            this->type = DEATH;
+            this->target.hold(&this->target,
+                message.data, message.length - died.length);
+            this->verb.hold(&this->verb,
+                message.data + this->target.length + 1, died.length - 2);
+        }
     }
     else if(message.data[message.length - 1] == ')')
     {
@@ -272,13 +283,5 @@ void Action_parse(struct Action* this, struct String message)
                 message.length - 1 - this->target.length - found.length);
             this->verb.hold(&this->verb, found.data + 1, found.length - 2);
         }
-    }
-    else if(message.endsWith(&message, &died))
-    {
-        this->type = DEATH;
-        this->target.hold(&this->target,
-            message.data, message.length - died.length);
-        this->verb.hold(&this->verb,
-            message.data + this->target.length + 1, died.length - 2);
     }
 }
