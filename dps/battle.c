@@ -196,20 +196,20 @@ void Battle_report(struct Battle* this)
     int64_t battleSeconds = this->m_end - this->m_start;
     if(battleSeconds == 0)
         battleSeconds = 1;
-    printf("Battle report! %"PRId64"s [", battleSeconds);
+    printf("===============  Battle report! %6"PRId64"s [", battleSeconds);
     unparseDate(this->m_start, &date);
     printf("%.*s", (int)date.length, date.data);
     printf(" - ");
     unparseDate(this->m_end, &date);
     printf("%.*s", (int)date.length, date.data);
-    printf("]:\n");
+    printf("]   ===============\n");
     #define break_str "-------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
     #define melee_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
-    #define backstab_format "%-15s %-50s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define backstab_format "%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     #define crit_format backstab_format
     #define crip_format backstab_format
-    #define total_format "%-15s %-50s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     #define death_format "%-35.*s %-30.*s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
@@ -247,7 +247,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(backstab_format,
                     "",
-                    "+backstabs",
+                    "  -backstabs",
                     "",
                     fight->m_backstab.hits,
                     hps(fight->m_backstab, fightSeconds),
@@ -261,7 +261,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(crit_format,
                     "",
-                    "+critical hits",
+                    "  -critical hits",
                     "",
                     fight->m_crit.hits,
                     hps(fight->m_crit, fightSeconds),
@@ -275,7 +275,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(crip_format,
                     "",
-                    "+crippling blows",
+                    "  -crippling blows",
                     "",
                     fight->m_crip.hits,
                     hps(fight->m_crip, fightSeconds),
@@ -290,7 +290,7 @@ void Battle_report(struct Battle* this)
         {
             printf(total_format,
                 "",
-                "+Battle",
+                "  -battle",
                 battleSeconds,
                 totalHits,
                 (double)totalHits / (double)battleSeconds,
