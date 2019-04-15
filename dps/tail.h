@@ -5,7 +5,8 @@
 
 #include <stddef.h>
 
-typedef void (*tailfn)(struct SimpleString line);
+// Return 'false' if you want the parsing to stop
+typedef bool (*tailfn)(struct SimpleString line);
 
 void tail(const char* filename, tailfn callback);
 

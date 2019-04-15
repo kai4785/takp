@@ -19,6 +19,7 @@ off_t fdSize(int fd)
 
 void tail(const char* filename, tailfn callback)
 {
+    bool keepgoing = true;
     struct Config* config = configInstance();
     int fd = open(filename, O_RDONLY | O_BINARY);
     if (fd < 0)
@@ -34,7 +35,7 @@ void tail(const char* filename, tailfn callback)
     }
     printf("tail %s\n", filename);
     char line[64 * 1024] = {0};
-    while(1)
+    while(keepgoing)
     {
         off_t fileSize = fdSize(fd);
         off_t newPos = lseek(fd, pos, SEEK_SET);
@@ -66,7 +67,7 @@ void tail(const char* filename, tailfn callback)
                         .data = &line[last],
                         .length = here - last,
                     };
-                    callback(string);
+                    keepgoing = callback(string);
                 }
                 last = here + 1;
             }

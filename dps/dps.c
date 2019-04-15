@@ -8,20 +8,20 @@
 #include <stdio.h>
 
 
-void tellme(struct SimpleString line)
+bool tellme(struct SimpleString line)
 {
     struct Config* config = configInstance();
     static int64_t lineno = 0;
     lineno++;
     // empty line
     if(line.length == 0)
-        return;
+        return true;;
     int64_t dateseconds = 0;
 
     if(line.length < 27 || !(line.data[0] == '[' && line.data[25] == ']'))
     {
         fprintf(stderr, "[%"PRId64"] No date in message(%zu): (%02x %02x) [|%s|]\n", lineno, line.length, line.data[0], line.data[25], line.data);
-        return;
+        return true;;
     }
     struct SimpleString datestring = {
         .data = line.data + 5,
@@ -35,7 +35,11 @@ void tellme(struct SimpleString line)
     dateseconds = parseDate(datestring);
     if(dateseconds < config->since)
     {
-        return;
+        return true;
+    }
+    if(config->until > 0 && dateseconds > config->until)
+    {
+        return false;
     }
     if(config->verbosity > 10)
     {
@@ -98,16 +102,18 @@ void tellme(struct SimpleString line)
         }
     }
     action.dtor(&action);
+    return true;
 }
 
 void print_help()
 {
-    printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--keepalive <seconds>] [--verbosity <level>] [--help]\n");
+    printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--until <date>] [--keepalive <seconds>] [--verbosity <level>] [--help]\n");
     printf("\t--log <file>            Filename of the log to parse\n");
     printf("\t--me <name>             The name of the character that generated the logs\n");
     printf("\t--follow                Parse the log file live as it is written to\n");
     printf("\t--history               Parses the entire history of the log file.\n");
     printf("\t--since <date>          Skip to <date> in the log (see --history)\n");
+    printf("\t--until <date>          Stop at <date> in the log (see --history)\n");
     printf("\t--keepalive <seconds>   The number of seconds between battles\n");
     printf("\t--verbosity <level>     Pump up the verbosity\n");
     printf("\t--help                  Print this help text\n");
@@ -122,6 +128,7 @@ int main(int argc, char **argv)
     struct String opt_history = CONST_STRING("--history");
     struct String opt_follow = CONST_STRING("--follow");
     struct String opt_since = CONST_STRING("--since");
+    struct String opt_until = CONST_STRING("--until");
     struct String opt_keepalive = CONST_STRING("--keepalive");
     struct String opt_reportByTarget = CONST_STRING("--by-target");
     struct String opt_help = CONST_STRING("--help");
@@ -167,6 +174,16 @@ int main(int argc, char **argv)
             if(config->since < 0)
             {
                 fprintf(stderr, "Error parsing --since string '%s'\n", argv[i]);
+            }
+        }
+        else if(opt_until.op_equal(&opt_until, &arg))
+        {
+            i++;
+            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            config->until = parseDate(datestring);
+            if(config->until < 0)
+            {
+                fprintf(stderr, "Error parsing --until string '%s'\n", argv[i]);
             }
         }
         else if(opt_keepalive.op_equal(&opt_keepalive, &arg))

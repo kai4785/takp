@@ -12,6 +12,7 @@ struct Config* configInstance()
         config.me = (struct SimpleString)SIMPLE_STRING("You");
         config.logfile = NULL;
         config.since = -1;
+        config.until = -1;
         config.keepAlive = 10;
         config.verbosity = 0;
         initialized = true;

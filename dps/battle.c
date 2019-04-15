@@ -51,7 +51,10 @@ double hps(struct Damage damage, int64_t seconds)
 
 double dph(struct Damage damage)
 {
-    return (double)(damage.damage) / (double)(damage.hits);
+    if(damage.hits)
+        return (double)(damage.damage) / (double)(damage.hits);
+    else
+        return 0;
 }
 
 // Constructors
@@ -66,6 +69,7 @@ void Fight_ctor(struct Fight* this)
         .m_backstab = {0},
         .m_crit = {0},
         .m_crip = {0},
+        .m_magic = {0},
         .seconds = &Fight_seconds,
         .dtor = &Fight_dtor
     };
@@ -97,7 +101,6 @@ void Battle_ctor(struct Battle* this)
         .m_start = -1,
         .m_end = -1,
         .m_expire = 0,
-        .m_totalDamage = 0,
         .m_totalHeals = 0,
         .start = &Battle_start,
         .reset = &Battle_reset,
@@ -179,7 +182,6 @@ void Battle_reset(struct Battle* this)
     this->m_start = -1;
     this->m_end = -1;
     this->m_expire = 0;
-    this->m_totalDamage = 0;
     this->m_totalHeals = 0;
     this->m_lastCrit = 0;
     this->m_lastCrip = 0;
@@ -247,7 +249,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(backstab_format,
                     "",
-                    "  -backstabs",
+                    "  *backstabs",
                     "",
                     fight->m_backstab.hits,
                     hps(fight->m_backstab, fightSeconds),
@@ -261,7 +263,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(crit_format,
                     "",
-                    "  -critical hits",
+                    "  *critical hits",
                     "",
                     fight->m_crit.hits,
                     hps(fight->m_crit, fightSeconds),
@@ -275,7 +277,7 @@ void Battle_report(struct Battle* this)
             {
                 printf(crip_format,
                     "",
-                    "  -crippling blows",
+                    "  *crippling blows",
                     "",
                     fight->m_crip.hits,
                     hps(fight->m_crip, fightSeconds),
@@ -285,17 +287,31 @@ void Battle_report(struct Battle* this)
                 );
                 linesPrinted++;
             }
+            if(fight->m_magic.hits > 0)
+            {
+                printf(crip_format,
+                    "",
+                    "  *spell/ds",
+                    "",
+                    fight->m_magic.hits,
+                    hps(fight->m_magic, fightSeconds),
+                    fight->m_magic.damage,
+                    dph(fight->m_magic),
+                    dps(fight->m_magic, fightSeconds)
+                );
+                linesPrinted++;
+            }
         }
         if(linesPrinted > 0)
         {
             printf(total_format,
                 "",
-                "  -battle",
+                "  *battle",
                 battleSeconds,
                 totalHits,
                 (double)totalHits / (double)battleSeconds,
                 totalDamage,
-                (double)totalDamage / (double)totalHits,
+                totalHits ? (double)totalDamage / (double)totalHits : 0,
                 (double)totalDamage / (double)battleSeconds
             );
             printf("%s\n", break_str);
@@ -432,28 +448,45 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
         this->m_lastCrip = 0;
     }
 
-    this->m_totalDamage += action->damage;
     Battle_keepalive(this, now);
 }
 
 void Battle_crit(struct Battle* this, int64_t now, struct Action* action)
 {
-    // TODO: So long as the crit message is *always* the line before the
-    // associated melee damage, this is fine.
     this->m_lastCrit = action->damage;
 }
 
 void Battle_crip(struct Battle* this, int64_t now, struct Action* action)
 {
-    // TODO: So long as the crip message is *always* the line before the
-    // associated melee damage, this is fine.
     this->m_lastCrip = action->damage;
 }
 
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action)
 {
-    action->source = CONST_STRING("Spell/DS(Total)");
+    // Gotta check Battle_isMe
+    if(Battle_isMe(&action->target))
+    {
+        action->source = CONST_STRING("Spell/DS(Total)");
+        //action->source.hold(&action->source, action->verb.data, action->verb.length);
+    }
+    else
+    {
+        struct Config* config = configInstance();
+        action->source.hold(&action->source, config->me.data, config->me.length);
+    }
+
     Battle_melee(this, now, action);
+
+    this->start(this, now);
+    int64_t sourceId = Battle_getPCIndex(this, &action->source);
+    int64_t targetId = Battle_getPCIndex(this, &action->target);
+
+    struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
+    fight->m_magic.hits++;
+    fight->m_magic.damage += action->damage;
+    fight->end = now;
+
+    Battle_keepalive(this, now);
 }
 
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action)

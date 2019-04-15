@@ -15,6 +15,7 @@ struct Config
     struct SimpleString me;
     const char* logfile;
     int64_t since;
+    int64_t until;
     int keepAlive;
 };
 

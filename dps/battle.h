@@ -31,6 +31,7 @@ struct Fight
     struct Damage m_backstab;
     struct Damage m_crit;
     struct Damage m_crip;
+    struct Damage m_magic;
     int64_t (*seconds)(struct Fight* this);
     void (*dtor)(struct Fight* this);
 };
@@ -39,6 +40,7 @@ struct Death
 {
     int64_t sourceId;
     int64_t targetId;
+    bool finishingBlow;
 };
 
 struct Battle;
@@ -52,7 +54,6 @@ struct Battle
     int64_t m_start;
     int64_t m_end;
     int64_t m_expire;
-    int64_t m_totalDamage;
     int64_t m_totalHeals;
     int64_t m_lastCrit;
     int64_t m_lastCrip;

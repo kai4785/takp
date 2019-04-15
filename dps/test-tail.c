@@ -58,7 +58,7 @@ struct SimpleString lines[] = {
 
 int errors = 0;
 size_t lineno = 0;
-void tellme(struct SimpleString line)
+bool tellme(struct SimpleString line)
 {
     if(configInstance()->verbosity > 5)
     {
@@ -66,6 +66,7 @@ void tellme(struct SimpleString line)
     }
     test_eq(line, lines[lineno]);
     lineno++;
+    return true;
 }
 
 void thething(struct SimpleString endofline)
