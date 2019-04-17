@@ -78,6 +78,11 @@ bool tellme(struct SimpleString line)
             battle->crip(battle, dateseconds, &action);
             break;
         }
+        case HOLYBLADE:
+        {
+            battle->holyBlade(battle, dateseconds, &action);
+            break;
+        }
         case MAGIC:
         {
             battle->magic(battle, dateseconds, &action);

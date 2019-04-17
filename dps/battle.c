@@ -34,6 +34,7 @@ void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
 void Battle_crit(struct Battle* this, int64_t now, struct Action* action);
 void Battle_crip(struct Battle* this, int64_t now, struct Action* action);
+void Battle_holyBlade(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 void Battle_death(struct Battle* this, int64_t now, struct Action* action);
@@ -111,6 +112,7 @@ void Battle_ctor(struct Battle* this)
         .melee = &Battle_melee,
         .crit = &Battle_crit,
         .crip = &Battle_crip,
+        .holyBlade = &Battle_holyBlade,
         .magic = &Battle_magic,
         .heal = &Battle_heal,
         .death = &Battle_death,
@@ -185,6 +187,7 @@ void Battle_reset(struct Battle* this)
     this->m_totalHeals = 0;
     this->m_lastCrit = 0;
     this->m_lastCrip = 0;
+    this->m_lastHolyBlade = 0;
     this->m_pc.clear(&this->m_pc);
     this->m_fight.clear(&this->m_fight);
     this->m_death.clear(&this->m_death);
@@ -211,6 +214,8 @@ void Battle_report(struct Battle* this)
     #define backstab_format "%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     #define crit_format backstab_format
     #define crip_format backstab_format
+    #define holyBlade_format backstab_format
+    #define magic_format backstab_format
     #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
     #define death_format "%-35.*s %-30.*s %s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
@@ -287,9 +292,23 @@ void Battle_report(struct Battle* this)
                 );
                 linesPrinted++;
             }
+            if(fight->m_holyBlade.hits > 0)
+            {
+                printf(holyBlade_format,
+                    "",
+                    "  *holy blade",
+                    "",
+                    fight->m_holyBlade.hits,
+                    hps(fight->m_holyBlade, fightSeconds),
+                    fight->m_holyBlade.damage,
+                    dph(fight->m_holyBlade),
+                    dps(fight->m_holyBlade, fightSeconds)
+                );
+                linesPrinted++;
+            }
             if(fight->m_magic.hits > 0)
             {
-                printf(crip_format,
+                printf(magic_format,
                     "",
                     "  *spell/ds",
                     "",
@@ -445,6 +464,12 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
         fight->m_crip.damage += action->damage;
         this->m_lastCrip = 0;
     }
+    else if(this->m_lastHolyBlade == action->damage)
+    {
+        fight->m_holyBlade.hits++;
+        fight->m_holyBlade.damage += action->damage;
+        this->m_lastHolyBlade = 0;
+    }
 
     Battle_keepalive(this, now);
 }
@@ -457,6 +482,11 @@ void Battle_crit(struct Battle* this, int64_t now, struct Action* action)
 void Battle_crip(struct Battle* this, int64_t now, struct Action* action)
 {
     this->m_lastCrip = action->damage;
+}
+
+void Battle_holyBlade(struct Battle* this, int64_t now, struct Action* action)
+{
+    this->m_lastHolyBlade = action->damage;
 }
 
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action)

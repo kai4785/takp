@@ -8,6 +8,8 @@
 [Tue Mar 16 00:00:02 2018] Player1 hits Player4 for 300 points of damage.
 [Tue Mar 16 00:00:02 2018] Player2 lands a Crippling Blow!(300)
 [Tue Mar 16 00:00:02 2018] Player2 hits Player4 for 300 points of damage.
-[Tue Mar 16 00:00:03 2018] Player2 hits Player4 for 400 points of damage.
+[Tue Mar 16 00:00:02 2018] Player2's holy blade cleanses his target!(400)
+[Tue Mar 16 00:00:02 2018] Player2 hits Player4 for 400 points of damage.
+[Tue Mar 16 00:00:03 2018] Player2 hits Player4 for 500 points of damage.
 [Tue Mar 16 00:00:04 2018] Player3 hits Player4 for 100 points of damage.
 [Tue Mar 16 00:00:04 2018] Player3 hits Player4 for 100 points of damage.

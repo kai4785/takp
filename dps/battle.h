@@ -31,6 +31,7 @@ struct Fight
     struct Damage m_backstab;
     struct Damage m_crit;
     struct Damage m_crip;
+    struct Damage m_holyBlade;
     struct Damage m_magic;
     int64_t (*seconds)(struct Fight* this);
     void (*dtor)(struct Fight* this);
@@ -57,6 +58,7 @@ struct Battle
     int64_t m_totalHeals;
     int64_t m_lastCrit;
     int64_t m_lastCrip;
+    int64_t m_lastHolyBlade;
     int64_t m_lastFinishingBlow;
     void (*start)(struct Battle* this, int64_t now);
     void (*reset)(struct Battle* this);
@@ -67,6 +69,7 @@ struct Battle
     void (*melee)(struct Battle* this, int64_t now, struct Action* action);
     void (*crit)(struct Battle* this, int64_t now, struct Action* action);
     void (*crip)(struct Battle* this, int64_t now, struct Action* action);
+    void (*holyBlade)(struct Battle* this, int64_t now, struct Action* action);
     void (*magic)(struct Battle* this, int64_t now, struct Action* action);
     void (*heal)(struct Battle* this, int64_t now, struct Action* action);
     void (*death)(struct Battle* this, int64_t now, struct Action* action);

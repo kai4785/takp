@@ -236,6 +236,7 @@ void Action_parse(struct Action* this, struct String message)
     {
         struct SimpleString critical_hit   = { .data = " Scores a critical hit!(", .length = 24 };
         struct SimpleString crippling_blow = { .data = " lands a Crippling Blow!(", .length = 25 };
+        struct SimpleString holy_blade = { .data = "'s holy blade cleanses his target!(", .length = 35 };
         struct SimpleString found = {0};
         if(message.find(&message, &critical_hit, &found))
         {
@@ -244,6 +245,10 @@ void Action_parse(struct Action* this, struct String message)
         else if(message.find(&message, &crippling_blow, &found))
         {
             this->type = CRIP;
+        }
+        else if(message.find(&message, &holy_blade, &found))
+        {
+            this->type = HOLYBLADE;
         }
         if(this->type != UNKNOWN)
         {

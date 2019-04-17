@@ -15,6 +15,7 @@ enum ActionType
     HEAL,
     CRIT,
     CRIP,
+    HOLYBLADE,
     DEATH,
     ZONE
 };
