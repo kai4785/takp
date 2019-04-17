@@ -57,6 +57,7 @@ struct Battle
     int64_t m_totalHeals;
     int64_t m_lastCrit;
     int64_t m_lastCrip;
+    int64_t m_lastFinishingBlow;
     void (*start)(struct Battle* this, int64_t now);
     void (*reset)(struct Battle* this);
     bool (*inProgress)(struct Battle* this);

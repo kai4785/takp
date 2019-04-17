@@ -212,7 +212,7 @@ void Battle_report(struct Battle* this)
     #define crit_format backstab_format
     #define crip_format backstab_format
     #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
-    #define death_format "%-35.*s %-30.*s\n"
+    #define death_format "%-35.*s %-30.*s %s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
@@ -325,23 +325,18 @@ void Battle_report(struct Battle* this)
     if(this->m_death.size > 0)
     {
         printf("Deaths: %zu\n", this->m_death.size);
-        printf(death_format, 6, "Target", 6, "Slayer");
+        printf(death_format, 6, "Target", 6, "Slayer", "");
         printf("%s\n", break_str);
         for(size_t i = 0; i < this->m_death.size; i++)
         {
             struct Death* death = this->m_death.at(&this->m_death, i);
             struct String* source = this->m_pc.at(&this->m_pc, death->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, death->targetId);
-            if(source)
-            {
-                printf(death_format,
-                    (int)target->length, target->data,
-                    (int)source->length, source->data);
-            }
-            else
-            {
-                printf(death_format, (int)target->length, target->data, 0, "");
-            }
+            printf(death_format,
+                (int)target->length, target->data,
+                source ? (int)source->length : 0, source ? source->data : "",
+                death->finishingBlow ? "Finishing Blow" : "")
+            ;
         }
         printf("%s\n", break_str);
     }
@@ -418,13 +413,16 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sou
 
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
 {
-    // TODO: Handle finishing blows separately
-    // Preceeded by a "<Name> scores a Finishing Blow!!"
-    if(action->type == MELEE && action->damage >= 32000)
-        return;
     this->start(this, now);
     int64_t sourceId = Battle_getPCIndex(this, &action->source);
     int64_t targetId = Battle_getPCIndex(this, &action->target);
+    // TODO: Handle finishing blows separately
+    // Preceeded by a "<Name> scores a Finishing Blow!!"
+    if(action->type == MELEE && action->damage >= 32000)
+    {
+        this->m_lastFinishingBlow = targetId;
+        return;
+    }
 
     struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
     fight->m_melee.hits++;
@@ -502,6 +500,11 @@ void Battle_death(struct Battle* this, int64_t now, struct Action* action)
     struct Death death = {0};
     death.sourceId = Battle_getPCIndex(this, &action->source);
     death.targetId = Battle_getPCIndex(this, &action->target);
+    if(death.targetId == this->m_lastFinishingBlow)
+    {
+        death.finishingBlow = true;
+        this->m_lastFinishingBlow = false;
+    }
     this->m_death.push(&this->m_death, &death);
     Battle_keepalive(this, now);
 }

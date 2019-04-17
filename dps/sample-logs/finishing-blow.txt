@@ -1,0 +1,4 @@
+[Tue Mar 16 00:00:00 1999] Soandso hits Andsoand for 1 point of damage.
+[Tue Mar 16 00:00:00 1999] Soandso scores a Finishing Blow!!
+[Tue Mar 16 00:00:00 1999] Soandso hits Andsoand for 32000 points of damage.
+[Tue Mar 16 00:00:00 1999] Andsoand has been slain by Soandso!
