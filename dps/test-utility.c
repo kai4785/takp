@@ -52,7 +52,7 @@ int main()
         _test(errors, fox.startsWith(&fox, &theEnd), false);
         _test(errors, fox.endsWith(&fox, &theStart), false);
         struct SimpleString found = {0};
-        _test(errors, fox.find(&fox, &theMiddle, &found), true);
+        _test(errors, (10 == fox.find(&fox, &theMiddle, &found)), true);
         _test(errors, (found.length == theMiddle.length), true);
         _test(errors, (found.data == fox.data + 10), true);
         fox.dtor(&fox);

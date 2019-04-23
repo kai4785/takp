@@ -125,6 +125,7 @@ void print_help()
     printf("\n");
 }
 
+#define NEXT_ARG(_x) printf(" '%s'", *((_x)++))
 int main(int argc, char **argv)
 {
     struct Config* config = configInstance();
@@ -141,23 +142,32 @@ int main(int argc, char **argv)
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
-    char* logfile = NULL;
-    for(int i = 1; i < argc; i++)
+    struct String logfile = {0};
+    String_ctor(&logfile);
+    printf("'%s'", argv[0]);
+    for(char** here = argv + 1; *here != NULL; NEXT_ARG(here))
     {
-        struct SimpleString arg = SIMPLE_STRING(argv[i]);
+        struct SimpleString arg = SIMPLE_STRING(*here);
         if(opt_help.op_equal(&opt_help, &arg))
         {
             help = true;
         }
         else if(opt_me.op_equal(&opt_me, &arg))
         {
-            i++;
-            config->me = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            NEXT_ARG(here);
+            config->me = (struct SimpleString)SIMPLE_STRING(*here);
         }
         else if(opt_log.op_equal(&opt_log, &arg))
         {
-            i++;
-            logfile = argv[i];
+            NEXT_ARG(here);
+            logfile.hold(&logfile, *here, strlen(*here));
+            struct SimpleString eqlog_ = { .data = "eqlog_", 6 };
+            struct SimpleString _loginse_txt = { .data = "_loginse.txt", 12 };
+            if(logfile.endsWith(&logfile, &_loginse_txt))
+            {
+                size_t pos = logfile.find(&logfile, &eqlog_, NULL);
+                config->me = (struct SimpleString){ logfile.data + eqlog_.length + pos, logfile.length - eqlog_.length - pos - _loginse_txt.length };
+            }
         }
         else if(opt_history.op_equal(&opt_history, &arg))
         {
@@ -173,60 +183,61 @@ int main(int argc, char **argv)
         }
         else if(opt_since.op_equal(&opt_since, &arg))
         {
-            i++;
-            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            NEXT_ARG(here);
+            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(*here);
             config->since = parseDate(datestring);
             if(config->since < 0)
             {
-                fprintf(stderr, "Error parsing --since string '%s'\n", argv[i]);
+                fprintf(stderr, "Error parsing --since string '%s'\n", *here);
             }
         }
         else if(opt_until.op_equal(&opt_until, &arg))
         {
-            i++;
-            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(argv[i]);
+            NEXT_ARG(here);
+            struct SimpleString datestring = (struct SimpleString)SIMPLE_STRING(*here);
             config->until = parseDate(datestring);
             if(config->until < 0)
             {
-                fprintf(stderr, "Error parsing --until string '%s'\n", argv[i]);
+                fprintf(stderr, "Error parsing --until string '%s'\n", *here);
             }
         }
         else if(opt_keepalive.op_equal(&opt_keepalive, &arg))
         {
-            i++;
+            NEXT_ARG(here);
             struct String keepalive;
-            String_ctorHold(&keepalive, argv[i], strlen(argv[i]));
+            String_ctorHold(&keepalive, *here, strlen(*here));
             config->keepAlive = keepalive.toInt(&keepalive);
             if(config->keepAlive < 0)
             {
-                fprintf(stderr, "Error parsing --keepalive string '%s'\n", argv[i]);
+                fprintf(stderr, "Error parsing --keepalive string '%s'\n", *here);
             }
         }
         else if(opt_verbosity.op_equal(&opt_verbosity, &arg))
         {
-            i++;
+            NEXT_ARG(here);
             struct String verbosity;
-            String_ctorHold(&verbosity, argv[i], strlen(argv[i]));
+            String_ctorHold(&verbosity, *here, strlen(*here));
             config->verbosity = (int)verbosity.toInt(&verbosity);
             if(config->verbosity < 0)
             {
-                fprintf(stderr, "Error parsing --verbosity string '%s'\n", argv[i]);
+                fprintf(stderr, "Error parsing --verbosity string '%s'\n", *here);
             }
         }
     }
+    printf("\n");
     if(help)
     {
         print_help();
         return 0;
     }
-    if(!logfile)
+    if(!logfile.length)
     {
         fprintf(stderr, "No log file provided (--log)\n");
         print_help();
         return 1;
     }
     struct Battle* battle = battleInstance();
-    tail(logfile, &tellme);
+    tail(logfile.data, &tellme);
     if(battle->inProgress(battle))
         battle->report(battle);
     battle->dtor(battle);

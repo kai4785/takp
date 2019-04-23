@@ -33,7 +33,6 @@ void tail(const char* filename, tailfn callback)
         fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
         return;
     }
-    printf("tail %s\n", filename);
     char line[64 * 1024] = {0};
     while(keepgoing)
     {
