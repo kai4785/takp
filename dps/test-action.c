@@ -165,6 +165,7 @@ int testActions()
     // Critical hits
     // Crippling blows
     // Finishing blows
+    // Critical blasts
 
     action.dtor(&action);
     return errors;

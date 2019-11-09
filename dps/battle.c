@@ -103,6 +103,10 @@ void Battle_ctor(struct Battle* this)
         .m_end = -1,
         .m_expire = 0,
         .m_totalHeals = 0,
+        .m_lastCrit = 0,
+        .m_lastCrip = 0,
+        .m_lastHolyBlade = 0,
+        .m_lastFinishingBlow = -1,
         .start = &Battle_start,
         .reset = &Battle_reset,
         .inProgress = &Battle_inProgress,
@@ -188,6 +192,7 @@ void Battle_reset(struct Battle* this)
     this->m_lastCrit = 0;
     this->m_lastCrip = 0;
     this->m_lastHolyBlade = 0;
+    this->m_lastFinishingBlow = -1;
     this->m_pc.clear(&this->m_pc);
     this->m_fight.clear(&this->m_fight);
     this->m_death.clear(&this->m_death);
@@ -533,7 +538,7 @@ void Battle_death(struct Battle* this, int64_t now, struct Action* action)
     if(death.targetId == this->m_lastFinishingBlow)
     {
         death.finishingBlow = true;
-        this->m_lastFinishingBlow = false;
+        this->m_lastFinishingBlow = -1;
     }
     this->m_death.push(&this->m_death, &death);
     Battle_keepalive(this, now);
