@@ -25,7 +25,8 @@ fi
 # Defaults that can be overridden
 takp_prefix="$HOME/.takp"
 wine_version="2.2-staging"
-winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
+#winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
+winetricks_verbs="d3dx9 csmt=on glsl=disabled"
 
 opts=(takp_prefix wine_version winetricks_verbs wine_base)
 commands=(install run install_and_run winetricks wine)
@@ -74,9 +75,12 @@ steam_photon_dir="${steam_apps_dir}/common/Proton 3.7/dist"
 steam_wine_prefix="${steam_photon_dir}/share/default_pfx"
 
 # Depends on parsed arguments
-wine_base="${takp_prefix}/wineversion/${wine_version}"
+if [ -z "${wine_base}" ]; then
+    wine_base="${takp_prefix}/wineversion/${wine_version}"
+fi
 wine_prefix="${takp_prefix}/wineprefix/${wine_version}"
 wine_bin="${wine_base}/bin/wine"
+wineserver_bin="${wine_base}/bin/wineserver"
 cache_base="${takp_prefix}/cache"
 log_base="${takp_prefix}/logs"
 log_dir="${log_base}/${wine_version}"
@@ -138,7 +142,11 @@ install()
         rsync -av "$HOME/Downloads/TAKP.dist/" "${takp_dir}"/
     fi
 
+    "${wineserver_bin}"&
+    sleep 1
+    "${wineserver_bin}" -k -w ||:
     "${winetricks_bin}" ${winetricks_verbs}
+    "${wineserver_bin}" -k -w ||:
     ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
 }
 
@@ -165,9 +173,15 @@ wine()
     ${wine_bin} $@
 }
 
+wineserver()
+{
+    ${wineserver_bin} $@
+}
+
 get_client()
 {
     xdotool search --name "${1}" ||:
+    #xdotool search --sync --onlyvisible --class "${1}"
 }
 
 get_keyboard_shortcuts()
@@ -215,7 +229,7 @@ drop_keyboard_shortcuts()
     gsettings reset org.gnome.settings-daemon.plugins.media-keys custom-keybindings
 }
 
-startup()
+launch()
 {
     num=${1:-$boxes}
     for num in $(seq 1 $num); do
@@ -227,6 +241,8 @@ startup()
             pid=$!
             echo $pid
             sleep .5
+        else
+            echo Client "[ takp-${user} : $client ]" already running.
         fi
     done
 }
@@ -261,28 +277,111 @@ login()
     done
 }
 
-activate()
+startup()
 {
-    user=${users[$((${1}-1))]}
-    #if ! xdotool search --name takp-${user} windowactivate; then
-    if ! wmctrl -a takp-${user}; then
-        echo "Couldn't find a window for ${user}" >&2
-    fi
+    launch
+    sleep 5
+    login
 }
 
-move_windows()
+altReturn()
+{
+    client=$1
+    xdotool windowactivate ${client}
+    sleep $sleeptime
+    xdotool keydown alt
+    sleep $sleeptime
+    xdotool key Return
+    sleep $sleeptime
+    xdotool keyup alt
+    sleep $sleeptime
+}
+
+position()
 {
     num=${1:-$boxes}
-    for num in $(seq 0 $((num - 1))); do
+    sleeptime=.2
+    pos=(0 1920 3840)
+    for num in $(seq 0 $((num-1))); do
         user=${users[$num]}
-        echo Activating $user
-        wmctrl -a takp-${user}
-        wmctrl -a takp-${user}
-        #wmctrl -r takp-${user} -g 1920,1080
-        pos="0,$((1920 * num)),0,1920,1080"
-        echo moving $user to $pos
-        wmctrl -r takp-${user} -e $pos
+        client=$(get_client takp-${user})
+        if [ -n "$client" ]; then
+            xdotool windowactivate ${client}
+            sleep $sleeptime
+            altReturn ${client}
+            xdotool windowactivate ${client}
+            sleep $sleeptime
+            xdotool windowmove --sync ${client} ${pos[$num]} 0
+            sleep $sleeptime
+            xdotool windowsize --sync ${client} 1920 1080
+            sleep $sleeptime
+            altReturn ${client}
+            xdotool windowactivate ${client}
+            sleep $sleeptime
+            xdotool getwindowgeometry ${client}
+            sleep $sleeptime
+        fi
     done
+}
+
+close()
+{
+    num=${1:-$boxes}
+    for num in $(seq 1 $num); do
+        user=${users[$((num-1))]}
+        client=$(get_client takp-${user})
+        if [ -n "$client" ]; then
+            pid=$(xdotool getwindowpid ${client})
+            kill $pid
+            sleep .1
+        fi
+    done
+}
+
+camp()
+{
+    num=${1:-$boxes}
+    for num in $(seq 1 $num); do
+        user=${users[$((num-1))]}
+        client=$(get_client takp-${user})
+        if [ -n "$client" ]; then
+            xdotool windowactivate ${client}
+            sleep .1
+            xdotool type /camp
+            xdotool key Return
+        fi
+    done
+    sleep 35
+    close
+}
+
+emote()
+{
+    num=${1:-$boxes}
+    for num in $(seq 1 $num); do
+        user=${users[$((num-1))]}
+        client=$(get_client takp-${user})
+        if [ -n "$client" ]; then
+            xdotool windowactivate ${client}
+            sleep .1
+            xdotool type /dance
+            xdotool key Return
+        fi
+    done
+}
+
+activate()
+{
+    index=$((${1} - 1))
+    user=${users[${index}]}
+    client=$(xdotool search --name takp-${user})
+    currentWindow=$(xdotool getactivewindow)
+    if [ "${client}" -eq "${currentWindow}" ]; then
+        echo "Moving mouse"
+        xdotool mousemove $((1920 / 2 + 1920 * ${index})) $((1080/2))
+    elif ! wmctrl -a takp-${user}; then
+        echo "Couldn't find a window for ${user}" >&2
+    fi
 }
 
 if [ ${#@} -eq 0 ]; then
