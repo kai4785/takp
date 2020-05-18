@@ -1,6 +1,7 @@
 #include "tail.h"
 #include "config.h"
 #include "system.h"
+#include "utility.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -21,18 +22,26 @@ void tail(const char* filename, tailfn callback)
 {
     bool keepgoing = true;
     struct Config* config = configInstance();
+
     int fd = open(filename, O_RDONLY | O_BINARY);
     if (fd < 0)
     {
         fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
         return;
     }
+
     off_t pos = config->history ? 0 : fdSize(fd);
     if(pos == (off_t)-1)
     {
         fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
         return;
     }
+
+    struct String cacheFileName;
+    String_ctorCopy(&cacheFileName, filename, strlen(filename));
+    cacheFileName.cat(&cacheFileName, ".dps-cache", 10);
+    printf("cache file name: %.*s\n", (int)cacheFileName.length, cacheFileName.data);
+
     char line[64 * 1024] = {0};
     while(keepgoing)
     {
