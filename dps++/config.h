@@ -1,10 +1,9 @@
 #ifndef CONFIG_H
+
 #define CONFIG_H
 
-#include "utility.h"
-
-#include <stdbool.h>
-#include <inttypes.h>
+#include <string_view>
+#include <cstdint>
 
 struct Config
 {
@@ -12,13 +11,14 @@ struct Config
     bool history;
     bool reportByTarget;
     int verbosity;
-    struct SimpleString me;
-    const char* logfile;
+    std::string_view me;
+    std::string_view logfile;
     int64_t since;
     int64_t until;
     int keepAlive;
+    bool asio;
 };
 
-struct Config* configInstance();
+Config* configInstance();
 
 #endif // CONFIG_H

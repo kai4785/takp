@@ -3,11 +3,14 @@
 #include "system.h"
 #include "utility.h"
 
-#include <errno.h>
+#include <string_view>
+#include <cerrno>
+#include <iostream>
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+using namespace std;
 
 off_t fdSize(int fd)
 {
@@ -18,29 +21,24 @@ off_t fdSize(int fd)
     return buf.st_size;
 }
 
-void tail(const char* filename, tailfn callback)
+void tail(const string& filename, tailfn callback)
 {
     bool keepgoing = true;
     struct Config* config = configInstance();
 
-    int fd = open(filename, O_RDONLY | O_BINARY);
+    int fd = ::open(filename.c_str(), O_RDONLY | O_BINARY);
     if (fd < 0)
     {
-        fprintf(stderr, "Error opening file: [%d] %s\n", errno, filename);
+        cerr << "Error opening file: [" << errno << "] " << filename << endl;
         return;
     }
 
     off_t pos = config->history ? 0 : fdSize(fd);
     if(pos == (off_t)-1)
     {
-        fprintf(stderr, "Error checking file size: [%d] %s\n", errno, filename);
+        cerr << "Error checking file sile: [" << errno << "] " << filename << endl;
         return;
     }
-
-    struct String cacheFileName;
-    String_ctorCopy(&cacheFileName, filename, strlen(filename));
-    cacheFileName.cat(&cacheFileName, ".dps-cache", 10);
-    printf("cache file name: %.*s\n", (int)cacheFileName.length, cacheFileName.data);
 
     char line[64 * 1024] = {0};
     while(keepgoing)
@@ -50,7 +48,7 @@ void tail(const char* filename, tailfn callback)
         if(newPos > fileSize)
         {
             pos = fileSize;
-            fprintf(stderr, "File truncation detected. New size: %"PRId64"\n", pos);
+            cerr << "File truncation detected. New size: " << pos << endl;
         }
         off_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)
@@ -64,18 +62,14 @@ void tail(const char* filename, tailfn callback)
         {
             if(line[here] == '\r' || line[here] == '\n')
             {
-                if(config->verbosity > 5)
+                if(config->verbosity > 10)
                 {
-                    printf("Found an end of line character '%02x', here:%zu, last:%zu\n",
-                        line[here], here, last);
+                    cout << "Found an end of line character '" << std::hex << line[here] << "' here:" << here << ", last:" << last << endl;
                 }
                 if(last < here)
                 {
-                    struct SimpleString string = {
-                        .data = &line[last],
-                        .length = here - last,
-                    };
-                    keepgoing = callback(string);
+                    string_view str(&line[last], here - last);
+                    keepgoing = callback(str);
                 }
                 last = here + 1;
             }

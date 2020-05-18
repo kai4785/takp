@@ -1,12 +1,11 @@
 #ifndef BATTLE_H
 #define BATTLE_H
 
-#include "array.h"
 #include "action.h"
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <inttypes.h>
+#include <string_view>
+#include <cstdint>
+#include <vector>
 
 struct Damage
 {
@@ -18,40 +17,35 @@ double dps(struct Damage damage, int64_t seconds);
 double hps(struct Damage damage, int64_t seconds);
 double dph(struct Damage damage);
 
-struct Fight;
-void Fight_ctor(struct Fight* this);
-struct Fight* Fight_new();
 struct Fight
 {
-    int64_t sourceId;
-    int64_t targetId;
-    int64_t start;
-    int64_t end;
+    Fight(int64_t sourceId, int64_t m_targetId, int64_t start);
+    int64_t m_sourceId;
+    int64_t m_targetId;
+    int64_t m_start;
+    int64_t m_end;
     struct Damage m_melee;
     struct Damage m_backstab;
     struct Damage m_crit;
     struct Damage m_crip;
     struct Damage m_holyBlade;
     struct Damage m_magic;
-    int64_t (*seconds)(struct Fight* this);
-    void (*dtor)(struct Fight* this);
+    int64_t seconds();
 };
 
 struct Death
 {
-    int64_t sourceId;
-    int64_t targetId;
-    bool finishingBlow;
+    int64_t m_sourceId;
+    int64_t m_targetId;
+    bool m_finishingBlow;
 };
 
-struct Battle;
-void Battle_ctor(struct Battle* this);
-struct Battle* Battle_new();
 struct Battle
 {
-    struct Array m_pc;
-    struct Array m_fight;
-    struct Array m_death;
+    Battle();
+    std::vector<std::string> m_pc;
+    std::vector<Fight> m_fight;
+    std::vector<Death> m_death;
     int64_t m_start;
     int64_t m_end;
     int64_t m_expire;
@@ -60,22 +54,26 @@ struct Battle
     int64_t m_lastCrip;
     int64_t m_lastHolyBlade;
     int64_t m_lastFinishingBlow;
-    void (*start)(struct Battle* this, int64_t now);
-    void (*reset)(struct Battle* this);
-    bool (*inProgress)(struct Battle* this);
-    bool (*isOver)(struct Battle* this, int64_t now);
-    int64_t (*seconds)(struct Battle* this);
-    void (*report)(struct Battle* this);
-    void (*melee)(struct Battle* this, int64_t now, struct Action* action);
-    void (*crit)(struct Battle* this, int64_t now, struct Action* action);
-    void (*crip)(struct Battle* this, int64_t now, struct Action* action);
-    void (*holyBlade)(struct Battle* this, int64_t now, struct Action* action);
-    void (*magic)(struct Battle* this, int64_t now, struct Action* action);
-    void (*heal)(struct Battle* this, int64_t now, struct Action* action);
-    void (*death)(struct Battle* this, int64_t now, struct Action* action);
-    void (*dtor)(struct Battle* this);
+    void start(int64_t now);
+    void reset();
+    bool inProgress();
+    bool isOver(int64_t now);
+    int64_t seconds();
+    void report();
+    void melee(int64_t now, const Action& action);
+    void crit(int64_t now, const Action& action);
+    void crip(int64_t now, const Action& action);
+    void holyBlade(int64_t now, const Action& action);
+    void magic(int64_t now, const Action& action);
+    void heal(int64_t now, const Action& action);
+    void death(int64_t now, const Action& action);
+private:
+    bool isMe(const std::string_view& pc);
+    int64_t getPCIndex(const std::string_view& pc);
+    Fight& getFight(int64_t now, int64_t sourceId, int64_t targetId);
+    void keepalive(int64_t now);
 };
 
-struct Battle* battleInstance();
+Battle* battleInstance();
 
 #endif // BATTLE_H

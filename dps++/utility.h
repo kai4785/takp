@@ -1,57 +1,92 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <inttypes.h>
-#include <string.h>
+#include <cstdint>
+#include <string>
+#include <string_view>
 
-struct SimpleString
+bool fromInt(char* data, size_t length, int64_t value);
+int64_t toInt(const std::string_view& str);
+bool endsWith(const std::string_view& str, const std::string_view& end);
+bool startsWith(const std::string_view& str, const std::string_view& end);
+
+// Simple class to help pass around a buffer to mutable data
+class StringBuf
 {
-    char* data;
-    size_t length;
+public:
+    StringBuf(size_t size, char* data = nullptr)
+        :m_size(size)
+        ,m_data(data)
+        ,m_owner(false)
+    {
+        if(m_data == nullptr)
+        {
+            m_data = new char[size];
+            m_owner = true;
+        }
+    }
+
+    ~StringBuf()
+    {
+        if(m_owner)
+        {
+            delete[] m_data;
+        }
+    }
+
+    char* data()
+    {
+        return m_data;
+    }
+
+    size_t size()
+    {
+        return m_size;
+    }
+
+    char& operator[](size_t i)
+    {
+        return m_data[i];
+    }
+
+    const char& operator[](std::size_t i) const
+    {
+        return m_data[i];
+    }
+
+    bool fromInt(size_t pos, size_t length, int64_t value)
+    {
+        ::fromInt(&m_data[pos], length, value);
+    }
+
+    // TODO: C++ify
+    void assign(const std::string_view& str, size_t pos, size_t length)
+    {
+        for(int i = 0; i < str.size(); i++)
+        {
+            m_data[pos + i] = str[i];
+        }
+    }
+
+    std::string_view string_view()
+    {
+        return std::string_view(m_data, m_size);
+    }
+
+    operator std::string_view()
+    {
+        return std::string_view(m_data, m_size);
+    }
+
+    operator std::string()
+    {
+        return std::string(m_data, m_size);
+    }
+
+private:
+    size_t m_size;
+    char* m_data;
+    bool m_owner;
 };
-
-// TODO: I'm not super happy with mixing and matching String, SimpleString, and
-// `const char*` inputs. Would be nice to have a clever solution to this
-// problem. I like the 'hold' stuff, but it gets a little onerous.
-struct String;
-void String_ctor    (struct String* this);
-void String_ctorHold(struct String* this, char* data, size_t length);
-void String_ctorCopy(struct String* this, const char* data, size_t length);
-void String_ctorCopyString(struct String* this, const struct SimpleString* that);
-struct String* String_new();
-struct String
-{
-    struct SimpleString;
-    bool ownsPtr;
-    void (*hold)         (struct String* this, char* data, size_t length);
-    void (*dup)          (struct String* this, const char* data, size_t length);
-    void (*cpy)          (struct String* this, const char* data, size_t length);
-    void (*cat)          (struct String* this, const char* data, size_t length);
-    bool (*cmp)          (struct String* this, const char* data, size_t length);
-    bool (*startsWith)   (struct String* this, const struct SimpleString* that);
-    bool (*endsWith)     (struct String* this, const struct SimpleString* that);
-    size_t (*find)       (struct String* this, const struct SimpleString* that, struct SimpleString* found);
-    bool (*op_equal)     (struct String* this, const struct SimpleString* that);
-    bool (*fromInt)      (struct String* this, int64_t value);
-    int64_t (*toInt)     (struct String* this);
-    void (*clear)        (struct String* this);
-    struct SimpleString* (*to_SimpleString)(struct String* this);
-    void (*dtor)         (struct String* this);
-};
-// Helper macro/function to make strings on the stack
-#define SIMPLE_STRING(_x) { .data = _x, .length = strlen(_x)}
-#define CONST_STRING(_x) _CONST_STRING(_x, strlen(_x))
-static inline const struct String _CONST_STRING(const char* data, size_t length)
-{
-    // Very carefully cast const away from data, but assign it to a const structure
-    // Does this do what I think it does?
-    struct String tmp;
-    String_ctorHold(&tmp, (char*)data, length);
-    return tmp;
-}
-
-extern struct SimpleString g_empty;
 
 #endif // UTILITY_H

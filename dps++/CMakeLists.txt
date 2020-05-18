@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_C_STANDARD_REQUIRED On)
+set(CMAKE_C_STANDARD 11)
+
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+set(CMAKE_CXX_STANDARD 17)
+
 project(eqdps VERSION 0.4.0)
 
 # tar --strip-components=1 -xvf ~/Downloads/asio-asio-1-16-1.tar.gz asio-asio-1-16-1/asio/include
@@ -22,9 +28,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/system.h.in ${CMAKE_CURRENT_BINARY_DI
 message(STATUS "HAVE_UNISTD_H ${HAVE_UNISTD_H}")
 message(STATUS "HAVE_IO_H ${HAVE_IO_H}")
 message(STATUS "HAVE_WINDOWS_H ${HAVE_WINDOWS_H}")
-
-set(CMAKE_C_STANDARD_REQUIRED On)
-set(CMAKE_C_STANDARD 11)
 
 # Platform compiler flags
 if(WIN32)
@@ -54,25 +57,23 @@ endif()
 
 # Static library with all the code
 add_library(enchilada STATIC
-    array.c
-    array.h
-    action.c
+    action.cpp
     action.h
-    battle.c
+    battle.cpp
     battle.h
-    config.c
+    config.cpp
     config.h
-    date.c
+    date.cpp
     date.h
-    tail.c
+    tail.cpp
     tail.h
-    utility.c
+    utility.cpp
     utility.h
 )
 target_link_libraries(enchilada PUBLIC asio)
 
 # Main executable
-add_executable(dps dps.c)
+add_executable(dps dps.cpp)
 target_link_libraries(dps PRIVATE enchilada)
 install(TARGETS dps RUNTIME DESTINATION .) 
 
@@ -80,16 +81,14 @@ install(TARGETS dps RUNTIME DESTINATION .)
 enable_testing()
 
 set(UNITS
-    array
     action
     battle
 #    config
     date
     tail
-    utility
 )
 foreach(UNIT ${UNITS})
-    add_executable(test-${UNIT} test-${UNIT}.c ${UNIT}.h test.h)
+    add_executable(test-${UNIT} test-${UNIT}.cpp ${UNIT}.h test.h)
     target_link_libraries(test-${UNIT} PRIVATE enchilada)
     add_test(test-${UNIT} test-${UNIT})
 endforeach()

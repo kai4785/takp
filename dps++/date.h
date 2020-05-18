@@ -3,9 +3,11 @@
 
 #include "utility.h"
 
-#include <inttypes.h>
+#include <string>
+#include <string_view>
+#include <cstdint>
 
-int64_t parseDate(const struct SimpleString datestring);
-bool unparseDate(int64_t now, struct SimpleString* datestring);
+int64_t parseDate(const std::string_view datestring);
+bool unparseDate(int64_t now, StringBuf& datestring);
 
 #endif // DATE_H

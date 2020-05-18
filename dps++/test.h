@@ -1,28 +1,30 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <stdio.h>
+#include <iostream>
 
 #define _test(_errors, _expr, _iseq) { \
     int newErrors = !(_iseq == (_expr)); \
     if(newErrors) \
     { \
-        fprintf(stderr, "%s:%d Failed expression\n", __FILE__, __LINE__); \
-        fprintf(stderr, "  %s\n", #_expr); \
+        std::cerr << __FILE__ << ":" << __LINE__ << " Failed expression" << std::endl; \
+        std::cerr << "  " << #_expr << std::endl; \
     } \
     errors += newErrors; \
 }
 
+// TODO: Use stream operators instead of _print
 #define _test_eq(_errors, _cmp, _print, _lhs, _rhs, _iseq) { \
     int newErrors = _cmp(_lhs, _rhs, _iseq); \
     if(newErrors) \
     { \
-        fprintf(stderr, "%s:%d Failed equivalency check\n", __FILE__, __LINE__); \
-        fprintf(stderr, "  (%s := ", #_lhs); \
+        std::cerr << __FILE__ ":" << __LINE__ << " Failed equivalency check" << std::endl; \
+        std::cerr << "  (" << #_lhs << " := "; \
         _print(_lhs); \
-        fprintf(stderr, ") %c= (%s := ", _iseq ? '!' : '=', #_rhs);\
+        std::cerr << ") " << _iseq ? '!' : '='; \
+        std::cerr << "= (" << #_rhs << ") := "; \
         _print(_rhs); \
-        fprintf(stderr, ")\n"); \
+        std::cerr << ")" << std::endl; \
     } \
     _errors += newErrors; \
 }
@@ -35,7 +37,7 @@ int cmp_Signed(int64_t left, int64_t right, bool equals)
 
 void print_Signed(int64_t value)
 {
-    fprintf(stderr, "(%"PRId64")", value);
+    std::cerr << value;
 }
 
 int cmp_Unsigned(uint64_t left, uint64_t right, bool equals)
@@ -45,7 +47,7 @@ int cmp_Unsigned(uint64_t left, uint64_t right, bool equals)
 
 void print_Unsigned(uint64_t value)
 {
-    fprintf(stderr, "(%"PRIu64")", value);
+    std::cerr << value;
 }
 
 // NOTE: define 'errors' locally

@@ -1,41 +1,36 @@
 #include "date.h"
 #include "test.h"
+#include "utility.h"
+
+using namespace std;
 
 #define dateEquals(_x, _y) _dateEquals(_x, _y, __FILE__, __LINE__)
 
 // TODO: Why can't this be const?
-int _dateEquals(/*const*/ char* date, int64_t expected, const char* file, int line)
+int _dateEquals(const string_view& dateString, int64_t expected, const char* file, int line)
 {
     int errors = 0;
-    struct SimpleString dateString =
-    {
-        .data = date,
-        .length = strlen(date)
-    };
     int64_t got = parseDate(dateString);
     if(got != expected)
     {
-        fprintf(stderr, "Failed to parse date: %s:%d\n", file, line);
-        fprintf(stderr, "   date:  [%d]%.*s\n", (int)dateString.length, (int)dateString.length, dateString.data);
-        fprintf(stderr, "   value: %"PRId64" != %"PRId64"\n", got, expected);
+        cerr << "Failed to parse date: " << file << ":" << line << endl;
+        cerr << "    date:  [" << dateString.size() << "]" << dateString << endl;
+        cerr << "    value: " << got << " != " << endl;
         errors++;
         return errors;
     }
-    char buf[20] = {0};
-    struct SimpleString reparsed = { .data = buf, .length = sizeof(buf) };
-    if(!unparseDate(got, &reparsed))
+    StringBuf reparsed(20);
+    if(!unparseDate(got, reparsed))
     {
-        fprintf(stderr, "Failed to reparse date: %s:%d\n", file, line);
-        fprintf(stderr, "   date:  [%"PRId64"]%.*s\n", got, (int)dateString.length, dateString.data);
+        cerr << "Failed to reparse date: " << file << ":" << line << endl;
+        cerr << "    date:  [" << got << "]" << dateString << endl;
     }
     else
     {
-        struct String compareit = {0};
-        String_ctorHold(&compareit, reparsed.data, reparsed.length);
-        if(!compareit.op_equal(&compareit, &dateString))
+        if(dateString != reparsed)
         {
-            fprintf(stderr, "Failed to reparse date: %s:%d\n", file, line);
-            fprintf(stderr, "   value: [%"PRId64"]%.*s != %.*s\n", got, (int)reparsed.length, reparsed.data, (int)dateString.length, dateString.data);
+            cerr << "Failed to reparse date: " << file << ":" << line << endl;
+            cerr << "    value:  [" << reparsed.size() << reparsed.string_view() << " != " << dateString << endl;
             errors++;
         }
     }
