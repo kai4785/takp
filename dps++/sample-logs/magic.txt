@@ -1,0 +1,11 @@
+[Tue Mar 16 03:00:00 1999] Player1 says, 'Magic damage'
+[Tue Mar 16 03:00:01 1999] Player1 was hit by non-melee for 1 point of damage.
+[Tue Mar 16 03:00:02 1999] Player1 was hit by non-melee for 2 points of damage.
+[Tue Mar 16 03:00:03 1999] Player1 was hit by non-melee for 3 points of damage.
+[Tue Mar 16 03:00:04 1999] Player1 was hit by non-melee for 4 points of damage.
+[Tue Mar 16 03:00:05 1999] Player1 was hit by non-melee for 5 points of damage.
+[Tue Mar 16 03:00:06 1999] You were hit by non-melee for 1 point of damage.
+[Tue Mar 16 03:00:07 1999] You were hit by non-melee for 2 points of damage.
+[Tue Mar 16 03:00:08 1999] You were hit by non-melee for 3 points of damage.
+[Tue Mar 16 03:00:09 1999] You were hit by non-melee for 4 points of damage.
+[Tue Mar 16 03:00:10 1999] You were hit by non-melee for 5 points of damage.

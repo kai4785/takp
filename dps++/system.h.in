@@ -1,0 +1,25 @@
+#cmakedefine HAVE_UNISTD_H
+#cmakedefine HAVE_IO_H
+#cmakedefine HAVE_WINDOWS_H
+
+#ifdef HAVE_UNISTD_H
+#    include <unistd.h>
+#    define O_BINARY 0
+#elif defined HAVE_IO_H
+#    include <io.h>
+#    define lseek _lseek
+#    define read _read
+#    define write _write
+#    define unlink _unlink
+#    define creat _creat
+#    define open _open
+#    define close _close
+#    ifdef HAVE_WINDOWS_H
+#        include <windows.h>
+#        define sleep(_seconds) Sleep(_seconds * 1000)
+#    else
+#        error "Must have windows.h for Sleep"
+#    endif
+#else
+#    error "Must have unistd.h or io.h for seek/read/sleep"
+#endif
