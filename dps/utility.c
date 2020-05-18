@@ -7,19 +7,20 @@
 struct SimpleString g_empty = { .data = "", .length = 0 };
 
 // Member function declarations
-void String_hold      (struct String* this, char* data, size_t length);
-void String_dup       (struct String* this, char* data, size_t length);
-void String_cpy       (struct String* this, char* data, size_t length);
-bool String_cmp       (struct String* this, char* data, size_t length);
-bool String_startsWith(struct String* this, struct SimpleString* that);
-bool String_endsWith  (struct String* this, struct SimpleString* that);
-size_t String_find      (struct String* this, struct SimpleString* that, struct SimpleString* found);
-bool String_op_equal  (struct String* this, struct SimpleString* that);
-int64_t String_toInt  (struct String* this);
-bool String_fromInt   (struct String* this, int64_t value);
-void String_clear     (struct String* this);
-struct SimpleString*  String_to_SimpleString(struct String* this);
-void String_dtor      (struct String* this);
+void String_hold         (struct String* this, char* data, size_t length);
+void String_dup          (struct String* this, const char* data, size_t length);
+void String_cpy          (struct String* this, const char* data, size_t length);
+void String_cat          (struct String* this, const char* data, size_t length);
+bool String_cmp          (struct String* this, const char* data, size_t length);
+bool String_startsWith   (struct String* this, const struct SimpleString* that);
+bool String_endsWith     (struct String* this, const struct SimpleString* that);
+size_t String_find       (struct String* this, const struct SimpleString* that, struct SimpleString* found);
+bool String_op_equal     (struct String* this, const struct SimpleString* that);
+int64_t String_toInt     (struct String* this);
+bool String_fromInt      (struct String* this, int64_t value);
+void String_clear        (struct String* this);
+struct SimpleString* String_to_SimpleString(struct String* this);
+void String_dtor         (struct String* this);
 
 // Constructors
 void String_ctor(struct String* this)
@@ -31,6 +32,7 @@ void String_ctor(struct String* this)
         .hold = &String_hold,
         .dup = &String_dup,
         .cpy = &String_cpy,
+        .cat = &String_cat,
         .cmp = &String_cmp,
         .startsWith = &String_startsWith,
         .endsWith = &String_endsWith,
@@ -51,7 +53,13 @@ void String_ctorHold(struct String* this, char* data, size_t length)
     this->length = length;
 }
 
-void String_ctorCopy(struct String* this, struct SimpleString* that)
+void String_ctorCopy(struct String* this, const char* data, size_t length)
+{
+    String_ctor(this);
+    this->dup(this, data, length);
+}
+
+void String_ctorCopyString(struct String* this, const struct SimpleString* that)
 {
     String_ctor(this);
     this->dup(this, that->data, that->length);
@@ -89,7 +97,7 @@ void String_hold(struct String* this, char* data, size_t length)
     this->ownsPtr = false;
 }
 
-void String_dup(struct String* this, char* data, size_t length)
+void String_dup(struct String* this, const char* data, size_t length)
 {
     if(this->ownsPtr)
     {
@@ -100,32 +108,40 @@ void String_dup(struct String* this, char* data, size_t length)
     this->cpy(this, data, length);
 }
 
-void String_cpy(struct String* this, char* data, size_t length)
+void String_cpy(struct String* this, const char* data, size_t length)
 {
     String_ncpy(this->data, data, length);
     this->length = length;
 }
 
-bool String_cmp(struct String* this, char* data, size_t length)
+void String_cat(struct String* this, const char* data, size_t length)
+{
+    size_t old_length = this->length;
+    this->data = realloc(this->data, this->length + length);
+    this->length += length;
+    String_ncpy(this->data + old_length, data, length);
+}
+
+bool String_cmp(struct String* this, const char* data, size_t length)
 {
     return String_ncmp(this->data, data, length);
 }
 
-bool String_startsWith(struct String* this, struct SimpleString* that)
+bool String_startsWith(struct String* this, const struct SimpleString* that)
 {
     if(this->length < that->length)
         return false;
     return String_ncmp(this->data, that->data, that->length);
 }
 
-bool String_endsWith(struct String* this, struct SimpleString* that)
+bool String_endsWith(struct String* this, const struct SimpleString* that)
 {
     if(this->length < that->length)
         return false;
     return String_ncmp(this->data + this->length - that->length, that->data, that->length);
 }
 
-size_t String_find(struct String* this, struct SimpleString* that, struct SimpleString* found)
+size_t String_find(struct String* this, const struct SimpleString* that, struct SimpleString* found)
 {
     if(this->length < that->length)
         return 0;
@@ -141,7 +157,7 @@ size_t String_find(struct String* this, struct SimpleString* that, struct Simple
     return 0;
 }
 
-bool String_op_equal(struct String* this, struct SimpleString* that)
+bool String_op_equal(struct String* this, const struct SimpleString* that)
 {
     if(this->length != that->length)
         return false;

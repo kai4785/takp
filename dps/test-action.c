@@ -72,6 +72,14 @@ int testActions()
     action.message = "You have been healed for 2090 points of damage.";
     errors += validateAction(action);
 
+    action.type = HEAL;
+    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.target = CONST_STRING("You");
+    action.verb = CONST_STRING("have been healed");
+    action.damage = 6;
+    action.message = "You have been healed for 6 points of damage.";
+    errors += validateAction(action);
+
     action.type = MELEE;
     action.source = CONST_STRING("You");
     action.target = CONST_STRING("a blizzard hunter");
@@ -81,7 +89,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.source = CONST_STRING("Spell/DS(Total)");
     action.target = CONST_STRING("a blizzard hunter");
     action.verb = CONST_STRING("non-melee");
     action.damage = 8;
@@ -97,7 +105,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.source = CONST_STRING("AoE Damage");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 300;
@@ -105,7 +113,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.source = CONST_STRING("AoE Damage");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -113,7 +121,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.source = CONST_STRING("AoE Damage");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 130;
@@ -121,7 +129,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source.hold(&action.source, g_empty.data, g_empty.length);
+    action.source = CONST_STRING("AoE Damage");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;

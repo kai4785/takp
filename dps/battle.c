@@ -407,7 +407,7 @@ int64_t Battle_getPCIndex(struct Battle* this, struct String* pc)
     if(id < 0)
     {
         struct String saveme;
-        String_ctorCopy(&saveme, findme);
+        String_ctorCopyString(&saveme, findme);
         id = this->m_pc.size;
         this->m_pc.push(&this->m_pc, &saveme);
         // Don't destroy saveme, we stuffed it into the array
@@ -496,18 +496,6 @@ void Battle_holyBlade(struct Battle* this, int64_t now, struct Action* action)
 
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action)
 {
-    // Gotta check Battle_isMe
-    if(Battle_isMe(&action->target))
-    {
-        action->source = CONST_STRING("Spell/DS(Total)");
-        //action->source.hold(&action->source, action->verb.data, action->verb.length);
-    }
-    else
-    {
-        struct Config* config = configInstance();
-        action->source.hold(&action->source, config->me.data, config->me.length);
-    }
-
     Battle_melee(this, now, action);
 
     this->start(this, now);
