@@ -71,8 +71,8 @@ done
 steam_apps_dir="$HOME/.local/share/Steam/steamapps"
 # Ubuntu 18.04
 steam_apps_dir="$HOME/.steam/steam/steamapps"
-steam_photon_dir="${steam_apps_dir}/common/Proton 3.7/dist"
-steam_wine_prefix="${steam_photon_dir}/share/default_pfx"
+steam_proton_dir="${steam_apps_dir}/common/Proton 5.0/dist"
+steam_wine_prefix="${steam_proton_dir}/share/default_pfx"
 
 # Depends on parsed arguments
 if [ -z "${wine_base}" ]; then
@@ -109,6 +109,9 @@ export WINE="${wine_bin}"
 # You can force wine to ignore installing mono on first run, which doesn't seem to be used by the TAKP client, and it is helpful to test out a fresh wine prefix
 export WINEDLLOVERRIDES="mscoree,mshtml="
 
+# Show FPS
+export LIBGL_SHOW_FPS=1
+
 install()
 {
     mkdir -p "${wine_prefix}"
@@ -120,7 +123,7 @@ install()
     fi
     if [ "${wine_version}" = "steam" ]; then
         if [ ! -e "${wine_base}" ]; then
-            rsync --exclude=default_pfx --exclude="dinput.dll.*" -av "${steam_photon_dir}"/ "${wine_base}"/
+            rsync --exclude=default_pfx --exclude="dinput.dll.*" -av "${steam_proton_dir}"/ "${wine_base}"/
             #rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
         fi
     elif [ "${wine_version}" = "system" ]; then
@@ -152,15 +155,18 @@ install()
 
 run()
 {
+    num=$1
+    user=${users[$((num-1))]}
+    pass=${passwords[$((num-1))]}
     mkdir -p "${log_dir}"
     cd "${takp_dir}"
-    "${wine_bin}" eqgame.exe patchme >"${log_dir}"/wine.log 2>&1
+    "${wine_bin}" eqgame.exe patchme "/ticket:$user/$pass" >"${log_dir}"/wine.log 2>&1
 }
 
 install_and_run()
 {
     install
-    run
+    run 1
 }
 
 winetricks()
@@ -237,7 +243,7 @@ launch()
         pass=${passwords[$((num-1))]}
         client=$(get_client takp-${user})
         if [ -z "$client" ]; then
-            run &
+            run $num &
             pid=$!
             echo $pid
             sleep .5
@@ -260,15 +266,15 @@ login()
         client=$(get_client takp-${user}-login)
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
-            sleep .5
-            echo -en "${user}\x0" > ${takp_dir}/equname.txt
-            xdotool key Tab Return
-            sleep .5
-            xdotool key Return
-            sleep .5
-            xdotool type ${pass}
-            xdotool key Return
-            sleep .5
+            #sleep .5
+            #echo -en "${user}\x0" > ${takp_dir}/equname.txt
+            #xdotool key Tab Return
+            #sleep .5
+            #xdotool key Return
+            #sleep .5
+            #xdotool type ${pass}
+            #xdotool key Return
+            #sleep .5
             xdotool search takp-${user}-login set_window --name takp-${user}
             sleep .5
             xdotool key Return
@@ -280,7 +286,7 @@ login()
 startup()
 {
     launch
-    sleep 5
+    sleep 5.5
     login
 }
 
