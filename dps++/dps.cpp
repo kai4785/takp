@@ -12,7 +12,7 @@ using namespace std::literals;
 
 bool tellme(const std::string_view& line)
 {
-    struct Config* config = configInstance();
+    auto& config = configInstance();
     static int64_t lineno = 0;
     lineno++;
     // empty line
@@ -29,15 +29,15 @@ bool tellme(const std::string_view& line)
     auto datestring = line.substr(5, 20);
     auto message = line.substr(27);
     dateseconds = parseDate(datestring);
-    if(dateseconds < config->since)
+    if(dateseconds < config.since)
     {
         return true;
     }
-    if(config->until > 0 && dateseconds > config->until)
+    if(config.until > 0 && dateseconds > config.until)
     {
         return false;
     }
-    if(config->verbosity >= 9)
+    if(config.verbosity >= 9)
     {
         cout << "dateseconds: " << dateseconds << endl;
     }
@@ -95,7 +95,7 @@ bool tellme(const std::string_view& line)
         case Action::UNKNOWN:
         default:
         {
-            if(config->verbosity > 10)
+            if(config.verbosity > 10)
                 cerr << "[" << lineno << "]:[" << dateseconds << "]" << message << endl;
             break;
         }
@@ -121,7 +121,7 @@ void print_help()
 #define NEXT_ARG(_x) printf(" '%s'", *((_x)++))
 int main(int argc, char **argv)
 {
-    struct Config* config = configInstance();
+    auto& config = configInstance();
     auto opt_log = "--log"sv;
     auto opt_me = "--me"sv;
     auto opt_history = "--history"sv;
@@ -132,6 +132,7 @@ int main(int argc, char **argv)
     auto opt_reportByTarget = "--by-target"sv;
     auto opt_help = "--help"sv;
     auto opt_verbosity = "--verbosity"sv;
+    auto opt_asio = "--asio"sv;
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
         else if(opt_me == arg)
         {
             NEXT_ARG(here);
-            config->me = *here;
+            config.me = *here;
         }
         else if(opt_log == arg)
         {
@@ -158,26 +159,26 @@ int main(int argc, char **argv)
             if(endsWith(logfile, _loginse_txt))
             {
                 size_t pos = logfile.find(eqlog_);
-                config->me = logfile.substr(eqlog_.size() + pos, logfile.size() - eqlog_.size() - pos - _loginse_txt.size());
+                config.me = logfile.substr(eqlog_.size() + pos, logfile.size() - eqlog_.size() - pos - _loginse_txt.size());
             }
         }
         else if(opt_history == arg)
         {
-            config->history = true;
+            config.history = true;
         }
         else if(opt_follow == arg)
         {
-            config->follow = true;
+            config.follow = true;
         }
         else if(opt_follow == arg)
         {
-            config->reportByTarget = true;
+            config.reportByTarget = true;
         }
         else if(opt_since == arg)
         {
             NEXT_ARG(here);
-            config->since = parseDate(*here);
-            if(config->since < 0)
+            config.since = parseDate(*here);
+            if(config.since < 0)
             {
                 cerr << "Error parsing --since string '" << *here << "'" << endl;
             }
@@ -186,8 +187,8 @@ int main(int argc, char **argv)
         {
             NEXT_ARG(here);
             string_view datestring = *here;
-            config->until = parseDate(datestring);
-            if(config->until < 0)
+            config.until = parseDate(datestring);
+            if(config.until < 0)
             {
                 cerr << "Error parsing --until string '" << *here << "'" << endl;
             }
@@ -195,8 +196,8 @@ int main(int argc, char **argv)
         else if(opt_keepalive == arg)
         {
             NEXT_ARG(here);
-            config->keepAlive = toInt(*here);
-            if(config->keepAlive < 0)
+            config.keepAlive = toInt(*here);
+            if(config.keepAlive < 0)
             {
                 cerr << "Error parsing --keepalive string '" << *here << "'" << endl;
             }
@@ -204,11 +205,15 @@ int main(int argc, char **argv)
         else if(opt_verbosity == arg)
         {
             NEXT_ARG(here);
-            config->verbosity = toInt(*here);
-            if(config->verbosity < 0)
+            config.verbosity = toInt(*here);
+            if(config.verbosity < 0)
             {
                 cerr << "Error parsing --verbosity string '" << *here << "'" << endl;
             }
+        }
+        else if(opt_asio == arg)
+        {
+            config.asio = true;
         }
     }
     cout << endl;

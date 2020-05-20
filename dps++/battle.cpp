@@ -46,6 +46,7 @@ Fight::Fight(int64_t sourceId, int64_t targetId, int64_t start)
     ,m_backstab{0,0}
     ,m_crit{0,0}
     ,m_crip{0,0}
+    ,m_holyBlade{0,0}
     ,m_magic{0,0}
 {
 }
@@ -82,7 +83,7 @@ void Battle::start(int64_t now)
 void Battle::keepalive(int64_t now)
 {
     m_end = now;
-    m_expire = now + configInstance()->keepAlive;
+    m_expire = now + configInstance().keepAlive;
 }
 
 bool Battle::isOver(int64_t now)
@@ -211,7 +212,7 @@ void Battle::report()
     // Report the date
     StringBuf startDateBuf(20);
     StringBuf endDateBuf(20);
-    struct Config* config = configInstance();
+    auto& config = configInstance();
     int64_t battleSeconds = m_end - m_start;
     if(battleSeconds == 0)
         battleSeconds = 1;
@@ -231,9 +232,9 @@ void Battle::report()
         for(size_t fightId = 0; fightId < m_fight.size(); fightId++)
         {
             auto& fight = m_fight.at(fightId);
-            int64_t id = config->reportByTarget ? fight.m_targetId : fight.m_sourceId;
-            bool printSource = (!linesPrinted ||  config->reportByTarget);
-            bool printTarget = (!linesPrinted || !config->reportByTarget);
+            int64_t id = config.reportByTarget ? fight.m_targetId : fight.m_sourceId;
+            bool printSource = (!linesPrinted ||  config.reportByTarget);
+            bool printTarget = (!linesPrinted || !config.reportByTarget);
             if(id != pcId)
                 continue;
             // TODO: Handle Ids that are less than 0
@@ -383,7 +384,7 @@ int64_t Battle::getPCIndex(const string_view& pc)
         return -1;
     id = 0;
 
-    string_view findme = (isMe(pc)) ? configInstance()->me : pc;
+    string_view findme = (isMe(pc)) ? configInstance().me : pc;
 
     for(id = 0; id < m_pc.size(); id++)
     {

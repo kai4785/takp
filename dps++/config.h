@@ -19,6 +19,6 @@ struct Config
     bool asio;
 };
 
-Config* configInstance();
+Config& configInstance();
 
 #endif // CONFIG_H

@@ -6,11 +6,16 @@
 #include <string_view>
 #include <cerrno>
 #include <iostream>
+#include <functional>
 #include <fcntl.h>
+#include <utility>
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <asio.hpp>
+
 using namespace std;
+using namespace asio;
 
 off_t fdSize(int fd)
 {
@@ -21,26 +26,79 @@ off_t fdSize(int fd)
     return buf.st_size;
 }
 
-void tail(const string& filename, tailfn callback)
+typedef asio::buffers_iterator<asio::streambuf::const_buffers_type> bi;
+std::pair<bi, bool>
+match_newline(bi begin, bi end)
 {
-    bool keepgoing = true;
-    struct Config* config = configInstance();
-
-    int fd = ::open(filename.c_str(), O_RDONLY | O_BINARY);
-    if (fd < 0)
+    bi here = begin;
+    while(here != end)
     {
-        cerr << "Error opening file: [" << errno << "] " << filename << endl;
-        return;
+        char c = *here++;
+        if(c == '\r' || c == '\n')
+        {
+            return std::make_pair(here, true);
+        }
+    }
+    return std::make_pair(here, false);
+}
+
+class TailAsio
+{
+public:
+    TailAsio(int fd, tailfn callback, off_t pos)
+        :m_fd(fd)
+        ,m_callback(callback)
+        ,m_pos(pos)
+        ,m_fileSize{fdSize(fd)}
+        ,m_stream{m_ioservice, m_fd}
+        ,m_config(configInstance())
+    {
     }
 
-    off_t pos = config->history ? 0 : fdSize(fd);
-    if(pos == (off_t)-1)
+    void handler(const std::error_code& error, const long unsigned int& bytesRead)
     {
-        cerr << "Error checking file sile: [" << errno << "] " << filename << endl;
-        return;
+        if(bytesRead > 1)
+        {
+            std::string_view line{asio::buffer_cast<const char*>(m_buf.data()), bytesRead - 1};
+            m_callback(line);
+        }
+        m_buf.consume(bytesRead);
+
+        m_pos += bytesRead;
+        if(m_pos == m_fileSize && !m_config.follow)
+        {
+            cout << "Read the last bytes." << endl;
+            m_ioservice.stop();
+        }
+        else
+        {
+            asio::async_read_until(m_stream, m_buf, match_newline, std::bind(&TailAsio::handler, this, std::placeholders::_1, std::placeholders::_2));
+        }
     }
 
+    void run()
+    {
+        asio::async_read_until(m_stream, m_buf, match_newline, std::bind(&TailAsio::handler, this, std::placeholders::_1, std::placeholders::_2));
+        m_ioservice.run();
+        cout << "Done running" << endl;
+    }
+
+private:
+    int m_fd;
+    tailfn m_callback;
+    off_t m_pos;
+    off_t m_fileSize;
+    io_service m_ioservice;
+    posix::stream_descriptor m_stream;
+    asio::streambuf m_buf;
+    Config& m_config;
+};
+
+void tail_loop(int fd, tailfn callback, off_t pos)
+{
+    auto& config = configInstance();
     char line[64 * 1024] = {0};
+    bool keepgoing = true;
     while(keepgoing)
     {
         off_t fileSize = fdSize(fd);
@@ -53,7 +111,7 @@ void tail(const string& filename, tailfn callback)
         off_t readSize = read(fd, &line, sizeof(line));
         if(readSize == 0)
         {
-            if(!config->follow)
+            if(!config.follow)
                 break;
             sleep(1);
         }
@@ -62,7 +120,7 @@ void tail(const string& filename, tailfn callback)
         {
             if(line[here] == '\r' || line[here] == '\n')
             {
-                if(config->verbosity > 10)
+                if(config.verbosity > 10)
                 {
                     cout << "Found an end of line character '" << std::hex << line[here] << "' here:" << here << ", last:" << last << endl;
                 }
@@ -77,4 +135,32 @@ void tail(const string& filename, tailfn callback)
         pos += last;
     }
     close(fd);
+}
+
+void tail(const string& filename, tailfn callback)
+{
+    auto& config = configInstance();
+
+    int fd = ::open(filename.c_str(), O_RDONLY | O_BINARY);
+    if (fd < 0)
+    {
+        cerr << "Error opening file: [" << errno << "] " << filename << endl;
+        return;
+    }
+
+    off_t pos = config.history ? 0 : fdSize(fd);
+    if(pos == (off_t)-1)
+    {
+        cerr << "Error checking file sile: [" << errno << "] " << filename << endl;
+        return;
+    }
+    if(config.asio)
+    {
+        TailAsio ta(fd, callback, pos);
+        ta.run();
+    }
+    else
+    {
+        tail_loop(fd, callback, pos);
+    }
 }

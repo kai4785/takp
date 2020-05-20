@@ -63,7 +63,7 @@ int errors = 0;
 size_t lineno = 0;
 bool tellme(const string_view& line)
 {
-    if(configInstance()->verbosity > 5)
+    if(configInstance().verbosity > 5)
     {
         cout << "[" << lineno << "](" << line.size() << ")" << " " << line << endl;
     }
@@ -104,11 +104,8 @@ void thething(const string_view& endofline)
     unlink(testFileName);
 }
 
-int main()
+int doit()
 {
-    struct Config* config = configInstance();
-    config->history = true;
-    config->verbosity = 10;
     auto cr = "\r"sv;
     auto lf = "\n"sv;
     auto crlf = "\r\n"sv;
@@ -122,4 +119,15 @@ int main()
     lineno = 0;
     thething(crlf);
     return errors;
+}
+
+int main()
+{
+    auto& config = configInstance();
+    config.history = true;
+    config.verbosity = 10;
+    int errors = 0;
+    errors += doit();
+    config.asio = true;
+    errors += doit();
 }
