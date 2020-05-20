@@ -27,8 +27,8 @@ void print_String(const string_view& value)
     cout << value;
 }
 
-#define test_eq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, true)
-#define test_neq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, false)
+#define test_eq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, true, '=')
+#define test_neq(_x, _y) _test_eq(errors, cmp_String, print_String, _x, _y, false, '!')
 
 #define test(_expr) _test(errors, _expr, true);
 #define test_false(_expr) _test(errors, _expr, false);

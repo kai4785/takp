@@ -14,14 +14,14 @@
 }
 
 // TODO: Use stream operators instead of _print
-#define _test_eq(_errors, _cmp, _print, _lhs, _rhs, _iseq) { \
+#define _test_eq(_errors, _cmp, _print, _lhs, _rhs, _iseq, _c) { \
     int newErrors = _cmp(_lhs, _rhs, _iseq); \
     if(newErrors) \
     { \
         std::cerr << __FILE__ ":" << __LINE__ << " Failed equivalency check" << std::endl; \
         std::cerr << "  (" << #_lhs << " := "; \
         _print(_lhs); \
-        std::cerr << ") " << _iseq ? '!' : '='; \
+        std::cerr << ") " << _c; \
         std::cerr << "= (" << #_rhs << ") := "; \
         _print(_rhs); \
         std::cerr << ")" << std::endl; \
@@ -51,10 +51,10 @@ void print_Unsigned(uint64_t value)
 }
 
 // NOTE: define 'errors' locally
-#define test_int_eq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true)
-#define test_int_neq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true)
+#define test_int_eq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true, '=')
+#define test_int_neq(_x, _y) _test_eq(errors, cmp_Signed, print_Signed, _x, _y, true, '=')
 
-#define test_uint_eq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true)
-#define test_uint_neq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true)
+#define test_uint_eq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true, '=')
+#define test_uint_neq(_x, _y) _test_eq(errors, cmp_Unsigned, print_Signed, _x, _y, true, '=')
 
 #endif // TEST_H

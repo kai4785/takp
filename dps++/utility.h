@@ -56,7 +56,7 @@ public:
 
     bool fromInt(size_t pos, size_t length, int64_t value)
     {
-        ::fromInt(&m_data[pos], length, value);
+        return ::fromInt(&m_data[pos], length, value);
     }
 
     // TODO: C++ify

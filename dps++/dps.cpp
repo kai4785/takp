@@ -170,7 +170,7 @@ int main(int argc, char **argv)
         {
             config.follow = true;
         }
-        else if(opt_follow == arg)
+        else if(opt_reportByTarget == arg)
         {
             config.reportByTarget = true;
         }
