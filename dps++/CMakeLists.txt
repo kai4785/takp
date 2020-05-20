@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_C_STANDARD_REQUIRED On)
-set(CMAKE_C_STANDARD 11)
-
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -32,21 +29,22 @@ message(STATUS "HAVE_WINDOWS_H ${HAVE_WINDOWS_H}")
 # Platform compiler flags
 if(WIN32)
 else()
-    if("${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-microsoft")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-microsoft")
     else()
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
     endif()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fms-extensions")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-braces")
-    message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wmissing-braces")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
+    message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
     if(ENABLE_PROFILING)
         # NOTE: gprof dps gmon.out | vim -R -
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
     endif()
     if(ENABLE_CODE_COVERAGE)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
         add_custom_target(coverage_html
             lcov -c -d . -o lcov.info
             COMMAND genhtml lcov.info -o coverage_html
