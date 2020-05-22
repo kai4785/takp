@@ -132,7 +132,7 @@ int main(int argc, char **argv)
     auto opt_reportByTarget = "--by-target"sv;
     auto opt_help = "--help"sv;
     auto opt_verbosity = "--verbosity"sv;
-    auto opt_asio = "--asio"sv;
+    auto opt_io = "--io"sv;
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
@@ -211,9 +211,10 @@ int main(int argc, char **argv)
                 cerr << "Error parsing --verbosity string '" << *here << "'" << endl;
             }
         }
-        else if(opt_asio == arg)
+        else if(opt_io == arg)
         {
-            config.asio = true;
+            NEXT_ARG(here);
+            config.io = static_cast<Config::IoMode>(toInt(*here));
         }
     }
     cout << endl;

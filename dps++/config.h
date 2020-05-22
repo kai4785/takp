@@ -7,6 +7,11 @@
 
 struct Config
 {
+    enum IoMode
+    {
+        IO_LOOP,
+        IO_ASIO,
+    };
     bool follow;
     bool history;
     bool reportByTarget;
@@ -16,7 +21,7 @@ struct Config
     int64_t since;
     int64_t until;
     int keepAlive;
-    bool asio;
+    IoMode io;
 };
 
 Config& configInstance();

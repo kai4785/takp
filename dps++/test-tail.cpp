@@ -123,11 +123,16 @@ int doit()
 
 int main()
 {
+    int errors = 0;
+
     auto& config = configInstance();
     config.history = true;
     config.verbosity = 10;
-    int errors = 0;
+    cout << "IO_LOOP" << endl;
+    config.io = Config::IO_LOOP;
     errors += doit();
-    config.asio = true;
+
+    config.io = Config::IO_ASIO;
+    cout << "IO_ASIO" << endl;
     errors += doit();
 }

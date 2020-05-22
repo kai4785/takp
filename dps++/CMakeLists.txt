@@ -3,7 +3,13 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_STANDARD 17)
 
-project(eqdps VERSION 0.4.0)
+project(eqdps VERSION 0.4.0 LANGUAGES CXX)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "-g -O0")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "-g -O3")
+endif()
 
 # tar --strip-components=1 -xvf ~/Downloads/asio-asio-1-16-1.tar.gz asio-asio-1-16-1/asio/include
 add_library(asio INTERFACE)

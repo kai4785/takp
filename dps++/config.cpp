@@ -14,7 +14,7 @@ Config& configInstance()
         -1,
         -1,
         10,
-        false,
+        Config::IO_LOOP,
     };
     return config;
 }
