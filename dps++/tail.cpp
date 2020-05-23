@@ -20,25 +20,23 @@ using namespace asio;
 class IO
 {
 public:
-    IO(const string& filename, tailfn callback)
+    IO(const string_view& filename, const TailCallBack& callback)
         :m_filename(filename)
         ,m_fd(-1)
         ,m_pos(0)
         ,m_callback(callback)
-        ,m_config(configInstance())
+        ,m_config(Config::instance())
         ,m_keepgoing(true)
     {
-        auto& config = configInstance();
-
-        m_fd = ::open(filename.c_str(), O_RDONLY | O_BINARY);
+        m_fd = ::open(m_filename.data(), O_RDONLY | O_BINARY);
         if (m_fd < 0)
         {
-            cerr << "Error opening file: [" << errno << "] " << filename << endl;
+            cerr << "Error opening file: [" << errno << "] " << m_filename << endl;
             throw "TODO: Better throw for opening a file";
         }
 
         m_fileSize = fdSize();
-        m_pos = config.history ? 0 : m_fileSize;
+        m_pos = m_config.history ? 0 : m_fileSize;
         ::lseek(m_fd, m_pos, SEEK_SET);
     }
 
@@ -84,11 +82,11 @@ protected:
         return buf.st_size;
     }
 
-    string m_filename;
+    string_view m_filename;
     int m_fd;
     off_t m_fileSize;
     off_t m_pos;
-    tailfn m_callback;
+    const TailCallBack& m_callback;
     Config& m_config;
     bool m_keepgoing;
     static const size_t bufSize = 64 * 1024;
@@ -97,7 +95,7 @@ protected:
 class LoopIO : public IO
 {
 public:
-    LoopIO(const string& filename, tailfn callback)
+    LoopIO(const string_view& filename, const TailCallBack& callback)
         :IO(filename, callback)
     {
     }
@@ -135,7 +133,7 @@ private:
 class ASIO : public IO
 {
 public:
-    ASIO(const string& filename, tailfn callback)
+    ASIO(const string_view& filename, const TailCallBack& callback)
         :IO(filename, callback)
         ,m_stream{m_ioservice, m_fd}
         ,m_buf{bufSize}
@@ -188,9 +186,9 @@ private:
     asio::streambuf m_buf;
 };
 
-void tail(const string& filename, tailfn callback)
+void tail(const string_view& filename, const TailCallBack& callback)
 {
-    switch(configInstance().io)
+    switch(Config::instance().io)
     {
     case(Config::IO_ASIO):
     {

@@ -2,7 +2,7 @@
 
 using namespace std::literals::string_view_literals;
 
-Config& configInstance()
+Config& Config::instance()
 {
     static Config config = {
         false,

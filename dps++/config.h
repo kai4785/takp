@@ -5,8 +5,10 @@
 #include <string_view>
 #include <cstdint>
 
-struct Config
+class Config
 {
+public:
+    static Config& instance();
     enum IoMode
     {
         IO_LOOP,
@@ -24,6 +26,5 @@ struct Config
     IoMode io;
 };
 
-Config& configInstance();
 
 #endif // CONFIG_H

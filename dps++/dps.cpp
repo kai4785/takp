@@ -4,104 +4,109 @@
 #include "date.h"
 #include "tail.h"
 
+#include <memory>
 #include <iostream>
 #include <string_view>
 
 using namespace std;
 using namespace std::literals;
 
-bool tellme(const std::string_view& line)
+class TellMe
 {
-    auto& config = configInstance();
-    static int64_t lineno = 0;
-    lineno++;
-    // empty line
-    if(line.size() == 0)
-        return true;;
-    int64_t dateseconds = 0;
-
-    if(line.size() < 27 || !(line[0] == '[' && line[25] == ']'))
+public:
+    bool operator()(const std::string_view& line)
     {
-        cerr << "[" << lineno << "] No date in message(" << line.size() << "): " << line[0] << " " << line[25] << " [|" << line << "|]" << endl;
-        return true;;
-    }
+        auto& config = Config::instance();
+        static int64_t lineno = 0;
+        lineno++;
+        // empty line
+        if(line.size() == 0)
+            return true;;
+        int64_t dateseconds = 0;
 
-    auto datestring = line.substr(5, 20);
-    auto message = line.substr(27);
-    dateseconds = parseDate(datestring);
-    if(dateseconds < config.since)
-    {
+        if(line.size() < 27 || !(line[0] == '[' && line[25] == ']'))
+        {
+            cerr << "[" << lineno << "] No date in message(" << line.size() << "): " << line[0] << " " << line[25] << " [|" << line << "|]" << endl;
+            return true;;
+        }
+
+        auto datestring = line.substr(5, 20);
+        auto message = line.substr(27);
+        dateseconds = parseDate(datestring);
+        if(dateseconds < config.since)
+        {
+            return true;
+        }
+        if(config.until > 0 && dateseconds > config.until)
+        {
+            return false;
+        }
+        if(config.verbosity >= 9)
+        {
+            cout << "dateseconds: " << dateseconds << endl;
+        }
+
+        auto battle = battleInstance();
+        if(battle->isOver(dateseconds))
+        {
+            battle->report();
+            battle->reset();
+        }
+
+        Action action(message);
+        switch(action.type())
+        {
+            case Action::CHAT:
+            {
+                cerr << message << endl;
+                break;
+            }
+            case Action::MELEE:
+            {
+                battle->melee(dateseconds, action);
+                break;
+            }
+            case Action::CRIT:
+            {
+                battle->crit(dateseconds, action);
+                break;
+            }
+            case Action::CRIP:
+            {
+                battle->crip(dateseconds, action);
+                break;
+            }
+            case Action::HOLYBLADE:
+            {
+                battle->holyBlade(dateseconds, action);
+                break;
+            }
+            case Action::MAGIC:
+            {
+                battle->magic(dateseconds, action);
+                break;
+            }
+            case Action::HEAL:
+            {
+                battle->heal(dateseconds, action);
+                break;
+            }
+            case Action::DEATH:
+            {
+                battle->death(dateseconds, action);
+                break;
+            }
+            case Action::UNKNOWN:
+            default:
+            {
+                if(config.verbosity > 10)
+                    cerr << "[" << lineno << "]:[" << dateseconds << "]" << message << endl;
+                break;
+            }
+        }
         return true;
     }
-    if(config.until > 0 && dateseconds > config.until)
-    {
-        return false;
-    }
-    if(config.verbosity >= 9)
-    {
-        cout << "dateseconds: " << dateseconds << endl;
-    }
-
-    auto battle = battleInstance();
-    if(battle->isOver(dateseconds))
-    {
-        battle->report();
-        battle->reset();
-    }
-
-    Action action(message);
-    switch(action.type())
-    {
-        case Action::CHAT:
-        {
-            cerr << message << endl;
-            break;
-        }
-        case Action::MELEE:
-        {
-            battle->melee(dateseconds, action);
-            break;
-        }
-        case Action::CRIT:
-        {
-            battle->crit(dateseconds, action);
-            break;
-        }
-        case Action::CRIP:
-        {
-            battle->crip(dateseconds, action);
-            break;
-        }
-        case Action::HOLYBLADE:
-        {
-            battle->holyBlade(dateseconds, action);
-            break;
-        }
-        case Action::MAGIC:
-        {
-            battle->magic(dateseconds, action);
-            break;
-        }
-        case Action::HEAL:
-        {
-            battle->heal(dateseconds, action);
-            break;
-        }
-        case Action::DEATH:
-        {
-            battle->death(dateseconds, action);
-            break;
-        }
-        case Action::UNKNOWN:
-        default:
-        {
-            if(config.verbosity > 10)
-                cerr << "[" << lineno << "]:[" << dateseconds << "]" << message << endl;
-            break;
-        }
-    }
-    return true;
-}
+};
 
 void print_help()
 {
@@ -118,10 +123,10 @@ void print_help()
     cout << "" << endl;
 }
 
-#define NEXT_ARG(_x) printf(" '%s'", *((_x)++))
+#define NEXT_ARG(_x) cout << " '" << *((_x)++) << "'"
 int main(int argc, char **argv)
 {
-    auto& config = configInstance();
+    auto& config = Config::instance();
     auto opt_log = "--log"sv;
     auto opt_me = "--me"sv;
     auto opt_history = "--history"sv;
@@ -136,7 +141,6 @@ int main(int argc, char **argv)
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
-    string logfile;
     cout << "'" << argv[0] << "'";
     for(char** here = argv + 1; *here != NULL; NEXT_ARG(here))
     {
@@ -153,13 +157,13 @@ int main(int argc, char **argv)
         else if(opt_log == arg)
         {
             NEXT_ARG(here);
-            logfile = *here;
+            config.logfile = *here;
             auto eqlog_ = "eqlog_"sv;
             auto _loginse_txt = "_loginse.txt"sv;
-            if(endsWith(logfile, _loginse_txt))
+            if(endsWith(config.logfile, _loginse_txt))
             {
-                size_t pos = logfile.find(eqlog_);
-                config.me = logfile.substr(eqlog_.size() + pos, logfile.size() - eqlog_.size() - pos - _loginse_txt.size());
+                size_t pos = config.logfile.find(eqlog_);
+                config.me = config.logfile.substr(eqlog_.size() + pos, config.logfile.size() - eqlog_.size() - pos - _loginse_txt.size());
             }
         }
         else if(opt_history == arg)
@@ -223,14 +227,15 @@ int main(int argc, char **argv)
         print_help();
         return 0;
     }
-    if(!logfile.size())
+    if(!config.logfile.size())
     {
         cerr << "No log file provided (--log)" << endl;
         print_help();
         return 1;
     }
     auto battle = battleInstance();
-    tail(logfile, &tellme);
+    TellMe tellme;
+    tail(config.logfile, tellme);
     if(battle->inProgress())
         battle->report();
     return 0;

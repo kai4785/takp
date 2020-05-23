@@ -83,7 +83,7 @@ void Battle::start(int64_t now)
 void Battle::keepalive(int64_t now)
 {
     m_end = now;
-    m_expire = now + configInstance().keepAlive;
+    m_expire = now + Config::instance().keepAlive;
 }
 
 bool Battle::isOver(int64_t now)
@@ -212,7 +212,7 @@ void Battle::report()
     // Report the date
     StringBuf startDateBuf(20);
     StringBuf endDateBuf(20);
-    auto& config = configInstance();
+    auto& config = Config::instance();
     int64_t battleSeconds = m_end - m_start;
     if(battleSeconds == 0)
         battleSeconds = 1;
@@ -384,7 +384,7 @@ int64_t Battle::getPCIndex(const string_view& pc)
         return -1;
     id = 0;
 
-    string_view findme = (isMe(pc)) ? configInstance().me : pc;
+    string_view findme = (isMe(pc)) ? Config::instance().me : pc;
 
     for(id = 0; id < m_pc.size(); id++)
     {

@@ -34,7 +34,7 @@ void Action::parseDamage(string_view& message)
                 // This is a special AE type message; we just parse it and return, or break and continue;
                 m_type = MAGIC;
                 m_source = "AoE Damage"sv;
-                auto& config = configInstance();
+                auto& config = Config::instance();
                 m_target = config.me;
                 m_verb = aeVerb.substr(1, aeVerb.size() - 2); // Trim leading/trailing whitespace
                 m_damage = toInt(damage);

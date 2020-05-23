@@ -63,7 +63,7 @@ int errors = 0;
 size_t lineno = 0;
 bool tellme(const string_view& line)
 {
-    if(configInstance().verbosity > 5)
+    if(Config::instance().verbosity > 5)
     {
         cout << "[" << lineno << "](" << line.size() << ")" << " " << line << endl;
     }
@@ -125,7 +125,7 @@ int main()
 {
     int errors = 0;
 
-    auto& config = configInstance();
+    auto& config = Config::instance();
     config.history = true;
     config.verbosity = 10;
     cout << "IO_LOOP" << endl;
