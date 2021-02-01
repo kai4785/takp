@@ -25,8 +25,7 @@ fi
 # Defaults that can be overridden
 takp_prefix="$HOME/.takp"
 wine_version="2.2-staging"
-#winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
-winetricks_verbs="d3dx9 csmt=on glsl=disabled"
+winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
 
 opts=(takp_prefix wine_version winetricks_verbs wine_base)
 commands=(install run install_and_run winetricks wine)
@@ -91,7 +90,7 @@ wine_file="${cache_base}/${wine_filename}"
 winetricks_url="https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks"
 winetricks_bin="${cache_base}/winetricks"
 drive_e="${takp_prefix}/drive_e"
-takp_dir="${drive_e}/TAKP"
+takp_dir="${drive_e}/TAKP${client_dir}"
 
 # Values for launching TAKP client
 boxes=${#users[@]}
@@ -105,6 +104,7 @@ export WINE="${wine_bin}"
 #export WINEDEBUG="+wgl"
 #export WINEDEBUG=+relay,+seh,+tid
 #export WINEDEBUG=+timestamp,+loaddll,+d3d
+#export WINEDEBUG=+timestamp,+loaddll
 
 # You can force wine to ignore installing mono on first run, which doesn't seem to be used by the TAKP client, and it is helpful to test out a fresh wine prefix
 export WINEDLLOVERRIDES="mscoree,mshtml="
@@ -147,10 +147,18 @@ install()
 
     "${wineserver_bin}"&
     sleep 1
+    "${wine_bin}" wineboot -u ||:
     "${wineserver_bin}" -k -w ||:
     "${winetricks_bin}" ${winetricks_verbs}
     "${wineserver_bin}" -k -w ||:
     ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
+}
+
+play()
+{
+    mkdir -p "${log_dir}"
+    cd "${takp_dir}"
+    "${wine_bin}" eqgame.exe patchme >"${log_dir}"/wine.log 2>&1
 }
 
 run()
@@ -182,6 +190,11 @@ wine()
 wineserver()
 {
     ${wineserver_bin} $@
+}
+
+execute()
+{
+    $@
 }
 
 get_client()
@@ -238,6 +251,15 @@ drop_keyboard_shortcuts()
 launch()
 {
     num=${1:-$boxes}
+    memFree=$(awk '/^MemAvailable:/{available=$2}
+                   /^Buffers:/{buffers=$2}
+                   /^Cached:/{cached=$2}
+                   END {print available+buffers+cached}' /proc/meminfo)
+    memReq=$((num * 1024 * 1024))
+    if [ $memFree -lt $memReq ]; then
+        echo "Not enough memory: $memFree < $memReq" >&2
+        exit 1
+    fi
     for num in $(seq 1 $num); do
         user=${users[$((num-1))]}
         pass=${passwords[$((num-1))]}
@@ -261,7 +283,7 @@ login()
         pass=${passwords[$((num-1))]}
         client=$(get_client takp-${user})
         if [ -z "$client" ]; then
-            xdotool search --name Client set_window --name takp-${user}-login
+            xdotool search --name 'Client[0-9]' set_window --name takp-${user}-login
         fi
         client=$(get_client takp-${user}-login)
         if [ -n "$client" ]; then
