@@ -1,6 +1,8 @@
 #cmakedefine HAVE_UNISTD_H
 #cmakedefine HAVE_IO_H
 #cmakedefine HAVE_WINDOWS_H
+#cmakedefine HAVE_INOTIFY_H
+#cmakedefine ASIO_DISABLE_EPOLL
 
 #ifdef HAVE_UNISTD_H
 #    include <unistd.h>
@@ -22,4 +24,8 @@
 #    endif
 #else
 #    error "Must have unistd.h or io.h for seek/read/sleep"
+#endif
+
+#ifdef HAVE_INOTIFY_H
+#include <sys/inotify.h>
 #endif

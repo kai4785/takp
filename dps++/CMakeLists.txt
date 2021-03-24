@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_STANDARD 17)
 
-project(eqdps VERSION 0.4.0 LANGUAGES CXX)
+project(eqdps VERSION 0.4.0)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "-g -O0")
@@ -26,11 +26,7 @@ include(CheckIncludeFiles)
 check_include_files(unistd.h HAVE_UNISTD_H)
 check_include_files(io.h HAVE_IO_H)
 check_include_files(windows.h HAVE_WINDOWS_H)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/system.h.in ${CMAKE_CURRENT_BINARY_DIR}/system.h)
-
-message(STATUS "HAVE_UNISTD_H ${HAVE_UNISTD_H}")
-message(STATUS "HAVE_IO_H ${HAVE_IO_H}")
-message(STATUS "HAVE_WINDOWS_H ${HAVE_WINDOWS_H}")
+check_include_files("linux/inotify.h" HAVE_INOTIFY_H)
 
 # Platform compiler flags
 if(WIN32)
@@ -57,6 +53,12 @@ else()
         )
     endif()
 endif()
+
+message(STATUS "HAVE_UNISTD_H ${HAVE_UNISTD_H}")
+message(STATUS "HAVE_IO_H ${HAVE_IO_H}")
+message(STATUS "HAVE_WINDOWS_H ${HAVE_WINDOWS_H}")
+message(STATUS "HAVE_INOTIFY_H ${HAVE_INOTIFY_H}")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/system.h.in ${CMAKE_CURRENT_BINARY_DIR}/system.h)
 
 # Static library with all the code
 add_library(enchilada STATIC

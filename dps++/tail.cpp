@@ -5,6 +5,7 @@
 
 #include <string_view>
 #include <cerrno>
+#include <chrono>
 #include <iostream>
 #include <functional>
 #include <fcntl.h>
@@ -27,6 +28,9 @@ public:
         ,m_callback(callback)
         ,m_config(Config::instance())
         ,m_keepgoing(true)
+#ifdef HAVE_INOTIFY_H
+        ,m_inotify(-1)
+#endif
     {
         m_fd = ::open(m_filename.data(), O_RDONLY | O_BINARY);
         if (m_fd < 0)
@@ -38,6 +42,11 @@ public:
         m_fileSize = fdSize();
         m_pos = m_config.history ? 0 : m_fileSize;
         ::lseek(m_fd, m_pos, SEEK_SET);
+
+#ifdef HAVE_INOTIFY_H
+        m_inotify = inotify_init();
+        inotify_add_watch(m_inotify, m_filename.data(), IN_MODIFY);
+#endif
     }
 
     off_t parseBuf(const string_view& bufView)
@@ -64,10 +73,28 @@ public:
         return last;
     }
 
+    void wait()
+    {
+#ifdef HAVE_INOTIFY_H
+            inotify_event event;
+            int retval = ::read(m_inotify, &event, sizeof(event));
+            if (retval == 0)
+            {
+                throw "inotify_event ::read() failed";
+            }
+#else
+            sleep(1);
+#endif
+    }
+
     virtual ~IO()
     {
         if(m_fd >= 0)
             close(m_fd);
+#ifdef HAVE_INOTIFY_H
+        if(m_inotify >= 0)
+            close(m_inotify);
+#endif
     }
 protected:
     off_t fdSize()
@@ -90,6 +117,9 @@ protected:
     Config& m_config;
     bool m_keepgoing;
     static const size_t bufSize = 64 * 1024;
+#ifdef HAVE_INOTIFY_H
+    int m_inotify;
+#endif
 };
 
 class LoopIO : public IO
@@ -117,7 +147,7 @@ public:
             {
                 if(!m_config.follow)
                     return;
-                sleep(1);
+                wait();
             }
             else
             {
@@ -144,28 +174,24 @@ public:
     {
         off_t parsedBytes = 0;
 
-        if(readSize == 0)
+        if(readSize == 0 && m_buf.size() == 0)
         {
-            if(m_buf.size())
-            {
-                cerr << "Still bytes left" << endl;
-            }
             if(!m_config.follow)
                 return;
-            // TODO: Have a wait_handler for config.follow
-            sleep(1);
+            m_stream.wait(asio::posix::stream_descriptor::wait_read);
+            //wait();
         }
         else
         {
-            string_view bufView{asio::buffer_cast<const char*>(m_buf.data()), m_buf.size()};
+            auto buf = m_buf.data();
+            string_view bufView{static_cast<const char*>(buf.data()), buf.size()};
             parsedBytes = parseBuf(bufView);
             m_pos += parsedBytes;
             m_buf.consume(parsedBytes);
         }
-
         if(m_keepgoing)
         {
-            asio::async_read(m_stream, m_buf, std::bind(&ASIO::read_handler, this, std::placeholders::_1, std::placeholders::_2));
+            _read();
         }
         else
         {
@@ -175,9 +201,14 @@ public:
 
     void run()
     {
-        asio::async_read(m_stream, m_buf, std::bind(&ASIO::read_handler, this, std::placeholders::_1, std::placeholders::_2));
+        _read();
         m_ioservice.run();
         cout << "Done running" << endl;
+    }
+
+    void _read()
+    {
+        asio::async_read(m_stream, m_buf, std::bind(&ASIO::read_handler, this, std::placeholders::_1, std::placeholders::_2));
     }
 
 private:
