@@ -50,6 +50,17 @@ accounts()
     fi
 }
 
+gdown40()
+{
+    fileid="$1"
+    filename="$2"
+    cookie="/tmp/takp-google-cookie"
+    tmphtml=/tmp/takp-google-tmphtml
+    curl -c $cookie -L "https://drive.google.com/uc?export=download&id=${fileid}" -o $tmphtml
+    confirm=$(cat $tmphtml | awk 'match($0, "confirm=([^&]+)&", m) {print m[1]}')
+    curl -b $cookie -L "https://drive.google.com/uc?export=download&id=${fileid}&confirm=${confirm}" -o $filename
+}
+
 # Old-trusty 2.2-staging
 takp_prefix="$HOME/.takp"
 wine_version="2.2-staging"
@@ -59,7 +70,7 @@ wine_version=system
 wine_base=/usr
 
 # Always needed
-winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
+winetricks_verbs="dinput8 csmt=on"
 
 opts=(takp_prefix wine_version winetricks_verbs wine_base)
 commands=(install run install_and_run winetricks wine)
@@ -173,22 +184,53 @@ install()
     fi
 
     if [ ! -e "${takp_dir}/eqgame.exe" ]; then
-        echo "Hey, you should install TAKP here: '${takp_dir}', ie '${takp_dir}/eqgame.exe'"
-        #TODO: Maybe we should download the client from google docs?
-        mkdir -p $(dirname "${takp_dir}")
-        rsync -av "$HOME/Downloads/TAKP.dist/" "${takp_dir}"/
+        filename="${cache_base}/TAKP.zip"
+        if [ ! -e "${filename}" ]; then
+            gdown40 "1X46DuXJYPl2igcwO2f5sHuX1XKX9BhVy" "${filename}"
+        fi
+        unzip -d "${drive_e}" "${filename}"
     fi
 
-    "${wineserver_bin}"&
-    sleep 1
-    "${wine_bin}" wineboot -u ||:
-    "${wineserver_bin}" -k -w ||:
-    sleep 1
-    "${wine_bin}" wineboot -u ||:
-    "${wineserver_bin}" -k -w ||:
-    "${winetricks_bin}" ${winetricks_verbs}
-    "${wineserver_bin}" -k -w ||:
-    ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
+    if [ $(sha1sum "${takp_dir}/eqgame.dll" | awk '{print $1}') != "e06d07cf1f21922caf31b19eef220655e8e76256" ]; then
+        filename="${cache_base}/freethemouse.zip"
+        if [ ! -e "$filename" ]; then
+            curl -L -o "$filename" 'https://www.dropbox.com/s/zbha7dxydsr92w0/eqgame_dll%20v3.5.3%20for%20ftm.zip?dl=0'
+        fi
+        mv "${takp_dir}"/eqgame.dll{,.dist}
+        unzip -d "${takp_dir}" "${filename}" "eqgame.dll"
+    fi
+
+    if [ ! -e ${wine_prefix}/system.reg ]; then
+        "${wine_bin}" wineboot -u ||:
+        "${wineserver_bin}" -k -w ||:
+        "${winetricks_bin}" ${winetricks_verbs}
+        "${wineserver_bin}" -k -w ||:
+        ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
+    fi
+
+    if [ ! -e ${takp_dir}/d3d8.dll ]; then
+        zipname="dgVoodoo2_73.zip"
+        filename="${cache_base}/${zipname}"
+        if [ ! -e "$filename" ]; then
+            curl -L -o "$filename" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
+        fi
+        unzip -d "${takp_dir}" "${filename}" "MS/x86*"
+        mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
+        mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
+    fi
+
+    if [ ! -e ${takp_dir}/d3d11.dll ]; then
+        ver="1.8.1"
+        tarname="dxvk-${ver}.tar.gz"
+        filename="${cache_base}/${tarname}"
+        if [ ! -e "$filename" ]; then
+            curl -L -o "$filename" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
+        fi
+        tar -C "${takp_dir}" -xf "${filename}" "dxvk-${ver}/x32"
+        mv ${takp_dir}/dxvk-${ver}/x32/d3d11.dll ${takp_dir}/d3d11.dll
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d11 /d native /f >/dev/null 2>&1
+    fi
 }
 
 play()
