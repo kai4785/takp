@@ -218,6 +218,7 @@ install()
         mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
         mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
     fi
 
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
@@ -228,7 +229,9 @@ install()
             curl -L -o "$filename" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
         fi
         tar -C "${takp_dir}" -xf "${filename}" "dxvk-${ver}/x32"
+        mv ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ${takp_dir}/d3d10.dll
         mv ${takp_dir}/dxvk-${ver}/x32/d3d11.dll ${takp_dir}/d3d11.dll
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d10 /d native /f >/dev/null 2>&1
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d11 /d native /f >/dev/null 2>&1
     fi
 }
