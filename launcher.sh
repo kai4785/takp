@@ -2,9 +2,6 @@
 
 set -e
 
-# TODO: Add optional Wined3d support
-# http://downloads.fdossena.com/Projects/WineD3D/Builds/WineD3DForWindows_2.2-staging.zip
-
 # Need gtk libs in order to draw windows, and it'll pull in all but the 32bit graphics drivers for x11 we need.
 # CentOS7: gtk3.i686
 
@@ -13,8 +10,12 @@ set -e
 takp_config=$HOME/.takp_launcher.conf
 if [ ! -e ${takp_config} ]; then
     cat << _EOF > "${takp_config}"
-users=("user1" "user2" "user3")
-passwords=("user1" "user2" "user3")
+trader="user1"
+accounts=("user2" "user3" "user4")
+default_password="password"
+default_suffix=""
+account_user1_password="differentpassword"
+account_user1_suffix=".differentfolder"
 _EOF
     echo "Unable to find config file, so I made one for you. Edit '${takp_config}' to set up your usernames and passwords." >&2
     exit 1
@@ -22,9 +23,42 @@ else
     . ${takp_config}
 fi
 
-# Defaults that can be overridden
+account_password()
+{
+    var="account_${1}_password"
+    echo ${!var:-${default_password}}
+}
+
+account_suffix()
+{
+    var="account_${1}_suffix"
+    echo ${!var:-${default_suffix}}
+}
+
+account_pid()
+{
+    var="account_${1}_pid"
+    echo ${!var:-0}
+}
+
+accounts()
+{
+    if [ -z "$1" ]; then
+        echo ${accounts[@]}
+    else
+        echo $@
+    fi
+}
+
+# Old-trusty 2.2-staging
 takp_prefix="$HOME/.takp"
 wine_version="2.2-staging"
+
+# Wine 6.0 + dgVoodoo + dxvk is working!
+wine_version=system
+wine_base=/usr
+
+# Always needed
 winetricks_verbs="d3dx9 dinput8 csmt=on glsl=disabled"
 
 opts=(takp_prefix wine_version winetricks_verbs wine_base)
@@ -90,10 +124,9 @@ wine_file="${cache_base}/${wine_filename}"
 winetricks_url="https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks"
 winetricks_bin="${cache_base}/winetricks"
 drive_e="${takp_prefix}/drive_e"
-takp_dir="${drive_e}/TAKP${client_dir}"
+takp_dir="${drive_e}/TAKP"
 
 # Values for launching TAKP client
-boxes=${#users[@]}
 gs_key="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
 gs_key_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
 
@@ -107,10 +140,11 @@ export WINE="${wine_bin}"
 #export WINEDEBUG=+timestamp,+loaddll
 
 # You can force wine to ignore installing mono on first run, which doesn't seem to be used by the TAKP client, and it is helpful to test out a fresh wine prefix
-export WINEDLLOVERRIDES="mscoree,mshtml="
+#export WINEDLLOVERRIDES="mscoree,mshtml="
 
-# Show FPS
-export LIBGL_SHOW_FPS=1
+# With dxvk, you can see fps
+export DXVK_HUD=fps
+#export DXVK_HUD=full
 
 install()
 {
@@ -149,6 +183,9 @@ install()
     sleep 1
     "${wine_bin}" wineboot -u ||:
     "${wineserver_bin}" -k -w ||:
+    sleep 1
+    "${wine_bin}" wineboot -u ||:
+    "${wineserver_bin}" -k -w ||:
     "${winetricks_bin}" ${winetricks_verbs}
     "${wineserver_bin}" -k -w ||:
     ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
@@ -163,18 +200,19 @@ play()
 
 run()
 {
-    num=$1
-    user=${users[$((num-1))]}
-    pass=${passwords[$((num-1))]}
+    account=$1
+    pass=$(account_password $account)
+    dir="${takp_dir}$(account_suffix $account)"
     mkdir -p "${log_dir}"
-    cd "${takp_dir}"
-    "${wine_bin}" eqgame.exe patchme "/ticket:$user/$pass" >"${log_dir}"/wine.log 2>&1
+    cd "${dir}"
+    "${wine_bin}" eqgame.exe patchme "/name:$account" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
+    echo $!
 }
 
 install_and_run()
 {
     install
-    run 1
+    run
 }
 
 winetricks()
@@ -200,7 +238,7 @@ execute()
 get_client()
 {
     xdotool search --name "${1}" ||:
-    #xdotool search --sync --onlyvisible --class "${1}"
+    #xdotool search --sync --onlyvisible --name "${1}"
 }
 
 get_keyboard_shortcuts()
@@ -250,66 +288,73 @@ drop_keyboard_shortcuts()
 
 launch()
 {
-    num=${1:-$boxes}
-    memFree=$(awk '/^MemAvailable:/{available=$2}
-                   /^Buffers:/{buffers=$2}
-                   /^Cached:/{cached=$2}
-                   END {print available+buffers+cached}' /proc/meminfo)
-    memReq=$((num * 1024 * 1024))
-    if [ $memFree -lt $memReq ]; then
-        echo "Not enough memory: $memFree < $memReq" >&2
-        exit 1
-    fi
-    for num in $(seq 1 $num); do
-        user=${users[$((num-1))]}
-        pass=${passwords[$((num-1))]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        memFree=$(awk '/^MemAvailable:/{available=$2}
+                       /^Buffers:/{buffers=$2}
+                       /^Cached:/{cached=$2}
+                       END {print available+buffers+cached}' /proc/meminfo)
+        memReq=$((1024 * 1024))
+        if [ $memFree -lt $memReq ]; then
+            echo "Not enough memory: $memFree < $memReq" >&2
+            exit 1
+        fi
+        client=$(get_client takp-${account})
         if [ -z "$client" ]; then
-            run $num &
-            pid=$!
+            pid=$(run $account)
             echo $pid
-            sleep .5
+            let "account_${account}_pid=$pid"
+            sleep 1
         else
-            echo Client "[ takp-${user} : $client ]" already running.
+            echo Client "[ takp-${account} : $client ]" already running.
         fi
     done
 }
 
+claim_login_window()
+{
+    account=$1
+    echo "Searching for window for $account"
+    xdotool search --all --pid $(account_pid $account) --name "Client[0-9]" set_window --name takp-$account-login
+}
+
+rename_window()
+{
+    echo "Renaming window $1 -> $2"
+    xdotool search --name "$1" set_window --name "$2"
+}
+
+swap_window_name()
+{
+    rename_window $1 takp-SWAP
+    rename_window $2 $1
+    rename_window takp-SWAP $1
+}
+
 login()
 {
-    num=${1:-$boxes}
-    for num in $(seq 1 $num); do
-        user=${users[$((num-1))]}
-        pass=${passwords[$((num-1))]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        pass=$(account_password $acount)
+        client=$(get_client takp-${account})
         if [ -z "$client" ]; then
-            xdotool search --name 'Client[0-9]' set_window --name takp-${user}-login
+            claim_login_window $account
         fi
-        client=$(get_client takp-${user}-login)
+        client=$(get_client takp-${account}-login)
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
-            #sleep .5
-            #echo -en "${user}\x0" > ${takp_dir}/equname.txt
-            #xdotool key Tab Return
-            #sleep .5
-            #xdotool key Return
-            #sleep .5
-            #xdotool type ${pass}
-            #xdotool key Return
-            #sleep .5
-            xdotool search takp-${user}-login set_window --name takp-${user}
+            sleep .5
+            rename_window takp-${account}-login takp-${account}
             sleep .5
             xdotool key Return
-            sleep .5
+            sleep 1
         fi
     done
 }
 
 startup()
 {
-    launch
+    launch $@
     sleep 5.5
-    login
+    login $@
 }
 
 altReturn()
@@ -325,42 +370,36 @@ altReturn()
     sleep $sleeptime
 }
 
+# Helper script to move 3 clients to 3 different X positions on the desktop
 position()
 {
-    num=${1:-$boxes}
+    num=0
     sleeptime=.2
     pos=(0 1920 3840)
-    for num in $(seq 0 $((num-1))); do
-        user=${users[$num]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        client=$(get_client takp-${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep $sleeptime
-            altReturn ${client}
             xdotool windowactivate ${client}
             sleep $sleeptime
             xdotool windowmove --sync ${client} ${pos[$num]} 0
             sleep $sleeptime
             xdotool windowsize --sync ${client} 1920 1080
             sleep $sleeptime
-            altReturn ${client}
-            xdotool windowactivate ${client}
-            sleep $sleeptime
-            xdotool getwindowgeometry ${client}
-            sleep $sleeptime
         fi
+        num=$((num+1))
     done
 }
 
 close()
 {
-    num=${1:-$boxes}
-    for num in $(seq 1 $num); do
-        user=${users[$((num-1))]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        client=$(get_client takp-${account})
         if [ -n "$client" ]; then
-            pid=$(xdotool getwindowpid ${client})
-            kill $pid
+            #pid=$(xdotool getwindowpid ${client})
+            #kill $pid
+            xdotool windowkill ${client}
             sleep .1
         fi
     done
@@ -368,10 +407,8 @@ close()
 
 camp()
 {
-    num=${1:-$boxes}
-    for num in $(seq 1 $num); do
-        user=${users[$((num-1))]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        client=$(get_client takp-${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep .1
@@ -385,10 +422,8 @@ camp()
 
 emote()
 {
-    num=${1:-$boxes}
-    for num in $(seq 1 $num); do
-        user=${users[$((num-1))]}
-        client=$(get_client takp-${user})
+    for account in $(accounts $@); do
+        client=$(get_client takp-${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep .1
@@ -401,14 +436,14 @@ emote()
 activate()
 {
     index=$((${1} - 1))
-    user=${users[${index}]}
-    client=$(xdotool search --name takp-${user})
+    account=${accounts[${index}]}
+    client=$(xdotool search --name takp-${account})
     currentWindow=$(xdotool getactivewindow)
     if [ "${client}" -eq "${currentWindow}" ]; then
         echo "Moving mouse"
         xdotool mousemove $((1920 / 2 + 1920 * ${index})) $((1080/2))
-    elif ! wmctrl -a takp-${user}; then
-        echo "Couldn't find a window for ${user}" >&2
+    elif ! wmctrl -a takp-${account}; then
+        echo "Couldn't find a window for ${account}" >&2
     fi
 }
 
