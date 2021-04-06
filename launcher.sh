@@ -448,8 +448,6 @@ close()
     for account in $(accounts $@); do
         client=$(get_client takp-${account})
         if [ -n "$client" ]; then
-            #pid=$(xdotool getwindowpid ${client})
-            #kill $pid
             xdotool windowkill ${client}
             sleep .1
         fi
@@ -468,7 +466,7 @@ camp()
         fi
     done
     sleep 35
-    close
+    close $@
 }
 
 emote()
