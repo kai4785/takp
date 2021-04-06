@@ -233,6 +233,12 @@ install()
     fi
 }
 
+disable_dgVoodoo_watermark()
+{
+    echo "[DirectX]" > "${takp_dir}"/dgVoodoo.conf
+    echo "dgVoodooWatermark = false" >> "${takp_dir}"/dgVoodoo.conf
+}
+
 play()
 {
     mkdir -p "${log_dir}"
