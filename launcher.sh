@@ -18,7 +18,8 @@ account_user1_password="differentpassword"
 account_user1_suffix=".differentfolder"
 _EOF
     echo "Unable to find config file, so I made one for you. Edit '${takp_config}' to set up your usernames and passwords." >&2
-    exit 1
+    echo "Press Enter to continue"
+    read nothing
 else
     . ${takp_config}
 fi
@@ -256,7 +257,7 @@ run()
     dir="${takp_dir}$(account_suffix $account)"
     mkdir -p "${log_dir}"
     cd "${dir}"
-    "${wine_bin}" eqgame.exe patchme "/name:$account" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
+    "${wine_bin}" eqgame.exe patchme "/title:takp-$account-login" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
     echo $!
 }
 
@@ -361,13 +362,6 @@ launch()
     done
 }
 
-claim_login_window()
-{
-    account=$1
-    echo "Searching for window for $account"
-    xdotool search --all --pid $(account_pid $account) --name "Client[0-9]" set_window --name takp-$account-login
-}
-
 rename_window()
 {
     echo "Renaming window $1 -> $2"
@@ -385,13 +379,9 @@ login()
 {
     for account in $(accounts $@); do
         pass=$(account_password $acount)
-        client=$(get_client takp-${account})
-        if [ -z "$client" ]; then
-            claim_login_window $account
-        fi
         client=$(get_client takp-${account}-login)
         if [ -n "$client" ]; then
-            xdotool windowactivate ${client}
+            xdotool windowactivate --sync ${client}
             sleep .5
             rename_window takp-${account}-login takp-${account}
             sleep .5
