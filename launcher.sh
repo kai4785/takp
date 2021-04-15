@@ -218,8 +218,10 @@ install()
         unzip -d "${takp_dir}" "${filename}" "MS/x86*"
         mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
         mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
+        mv ${takp_dir}/MS/x86/DDraw.dll ${takp_dir}/ddraw.dll
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v ddraw /d native /f >/dev/null 2>&1
     fi
 
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
@@ -394,7 +396,7 @@ login()
 startup()
 {
     launch $@
-    sleep 5.5
+    sleep 6
     login $@
 }
 
@@ -438,7 +440,8 @@ close()
     for account in $(accounts $@); do
         client=$(get_client takp-${account})
         if [ -n "$client" ]; then
-            xdotool windowkill ${client}
+            pid=$(xdotool getwindowpid ${client})
+            kill $pid
             sleep .1
         fi
     done
