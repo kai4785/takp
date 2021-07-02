@@ -225,7 +225,7 @@ install()
     fi
 
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
-        ver="1.8.1"
+        ver="1.9"
         tarname="dxvk-${ver}.tar.gz"
         filename="${cache_base}/${tarname}"
         if [ ! -e "$filename" ]; then
