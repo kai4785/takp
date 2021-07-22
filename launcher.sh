@@ -489,6 +489,33 @@ activate()
     fi
 }
 
+nparse_install()
+{
+    if [ -d "$takp_prefix/nparse-takp" ]; then
+	echo "nparse already in place"
+	exit 0
+    fi
+    mkdir -p $takp_prefix/nparse-takp
+    cd $takp_prefix/nparse-takp
+    wget https://github.com/hitechhippie/nparse-takp/archive/refs/tags/v0.6.0-takp.tar.gz
+    tar zxvf v0.6.0-takp.tar.gz
+    rm -f v0.6.0-takp.tar.gz
+    mv nparse-takp-0.6.0-takp nparse-takp-template
+    sed -i '1c#!/usr/bin/python3' nparse-takp-template/nparse.py
+    chmod +x nparse-takp-template/nparse.py
+}
+
+nparse()
+{
+    account=$1
+    cd $takp_prefix/nparse-takp
+    if [ ! -d "$takp_prefix/nparse-takp/$1" ]; then
+	cp -a nparse-takp-template $1
+    fi
+    cd $1
+    ./nparse.py &
+}
+
 if [ ${#@} -eq 0 ]; then
     print_help
 fi
