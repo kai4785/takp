@@ -210,7 +210,7 @@ install()
     fi
 
     if [ ! -e ${takp_dir}/d3d8.dll ]; then
-        zipname="dgVoodoo2_73.zip"
+        zipname="dgVoodoo2_75.zip"
         filename="${cache_base}/${zipname}"
         if [ ! -e "$filename" ]; then
             curl -L -o "$filename" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
