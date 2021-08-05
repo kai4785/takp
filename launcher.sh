@@ -6,11 +6,11 @@ set -e
 # CentOS7: gtk3.i686
 
 
+midi=0
 # Config file for usernames and passwords
 takp_config=$HOME/.takp_launcher.conf
 if [ ! -e ${takp_config} ]; then
     cat << _EOF > "${takp_config}"
-trader="user1"
 accounts=("user2" "user3" "user4")
 default_password="password"
 default_suffix=""
@@ -36,9 +36,9 @@ account_suffix()
     echo ${!var:-${default_suffix}}
 }
 
-account_pid()
+client_pid()
 {
-    var="account_${1}_pid"
+    var="client_${1}_pid"
     echo ${!var:-0}
 }
 
@@ -68,10 +68,9 @@ wine_version="2.2-staging"
 
 # Wine 6.0 + dgVoodoo + dxvk is working!
 wine_version=system
-wine_base=/usr
 
 # Always needed
-winetricks_verbs="dinput8 csmt=on"
+winetricks_verbs="dinput8"
 
 opts=(takp_prefix wine_version winetricks_verbs wine_base)
 commands=(install run install_and_run winetricks wine)
@@ -116,10 +115,13 @@ done
 steam_apps_dir="$HOME/.local/share/Steam/steamapps"
 # Ubuntu 18.04
 steam_apps_dir="$HOME/.steam/steam/steamapps"
-steam_proton_dir="${steam_apps_dir}/common/Proton 5.0/dist"
+steam_proton_dir="${steam_apps_dir}/common/Proton 6.3/dist"
 steam_wine_prefix="${steam_proton_dir}/share/default_pfx"
 
 # Depends on parsed arguments
+if [ "${wine_version}" == "system" ]; then
+    wine_base=/usr
+fi
 if [ -z "${wine_base}" ]; then
     wine_base="${takp_prefix}/wineversion/${wine_version}"
 fi
@@ -169,8 +171,9 @@ install()
     fi
     if [ "${wine_version}" = "steam" ]; then
         if [ ! -e "${wine_base}" ]; then
-            rsync --exclude=default_pfx --exclude="dinput.dll.*" -av "${steam_proton_dir}"/ "${wine_base}"/
-            #rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
+            mkdir -p "${wine_base}" "${wine_prefix}"
+            rsync --exclude=default_pfx -av "${steam_proton_dir}"/ "${wine_base}"/
+            rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
         fi
     elif [ "${wine_version}" = "system" ]; then
         echo "system wine"
@@ -218,10 +221,8 @@ install()
         unzip -d "${takp_dir}" "${filename}" "MS/x86*"
         mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
         mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
-        mv ${takp_dir}/MS/x86/DDraw.dll ${takp_dir}/ddraw.dll
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
         ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v ddraw /d native /f >/dev/null 2>&1
     fi
 
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
@@ -259,8 +260,8 @@ run()
     dir="${takp_dir}$(account_suffix $account)"
     mkdir -p "${log_dir}"
     cd "${dir}"
-    "${wine_bin}" eqgame.exe patchme "/title:takp-$account-login" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
-    echo $!
+    "${wine_bin}" eqgame.exe patchme "/title:takp-${account}_login" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
+    set_client_pid ${account} $!
 }
 
 install_and_run()
@@ -289,10 +290,42 @@ execute()
     $@
 }
 
-get_client()
+set_client_window()
 {
-    xdotool search --name "${1}" ||:
-    #xdotool search --sync --onlyvisible --name "${1}"
+    let "client_${1}_window=$2"
+}
+
+set_client_pid()
+{
+    let "client_${1}_pid=$2"
+}
+
+client()
+{
+    var="client_${1}_window"
+    echo ${!var}
+}
+
+client_pid()
+{
+    var="client_${1}_pid"
+    echo ${!var}
+}
+
+collect_window_info()
+{
+    windows=$(xdotool search --name takp- ||:)
+    for window in $windows; do
+        windowname=$(xdotool getwindowname $window);
+        client=${windowname/takp-/}
+        pid=$(xdotool getwindowpid $window)
+
+        set_client_window ${client} $window
+        set_client_pid ${client} $pid
+
+        #client ${client}
+        #client_pid ${client}
+    done
 }
 
 get_keyboard_shortcuts()
@@ -352,11 +385,9 @@ launch()
             echo "Not enough memory: $memFree < $memReq" >&2
             exit 1
         fi
-        client=$(get_client takp-${account})
+        client=$(client ${account})
         if [ -z "$client" ]; then
-            pid=$(run $account)
-            echo $pid
-            let "account_${account}_pid=$pid"
+            run $account
             sleep 1
         else
             echo Client "[ takp-${account} : $client ]" already running.
@@ -380,12 +411,13 @@ swap_window_name()
 login()
 {
     for account in $(accounts $@); do
-        pass=$(account_password $acount)
-        client=$(get_client takp-${account}-login)
+        pass=$(account_password ${account})
+        client=$(client ${account}_login)
         if [ -n "$client" ]; then
-            xdotool windowactivate --sync ${client}
+            echo "Activating window"
+            xdotool windowactivate ${client}
             sleep .5
-            rename_window takp-${account}-login takp-${account}
+            rename_window takp-${account}_login takp-${account}
             sleep .5
             xdotool key Return
             sleep 1
@@ -393,10 +425,26 @@ login()
     done
 }
 
+start_midi()
+{
+    if ! pidof fluidsynth >/dev/null; then
+        nohup fluidsynth -l -s -i -aalsa -o audio.alsa.device=default "${takp_dir}"/synthusr-samplefix-BASSMIDI.sf2 >/dev/null 2>&1 &
+    fi
+}
+
+stop_midi()
+{
+    killall fluidsynth
+}
+
 startup()
 {
+    if [ $midi -eq 1 ]; then
+        start_midi
+    fi
     launch $@
-    sleep 6
+    sleep 7
+    collect_window_info
     login $@
 }
 
@@ -420,7 +468,7 @@ position()
     sleeptime=.2
     pos=(0 1920 3840)
     for account in $(accounts $@); do
-        client=$(get_client takp-${account})
+        client=$(client ${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep $sleeptime
@@ -438,34 +486,42 @@ position()
 close()
 {
     for account in $(accounts $@); do
-        client=$(get_client takp-${account})
-        if [ -n "$client" ]; then
-            pid=$(xdotool getwindowpid ${client})
+        pid=$(client_pid ${account})
+        while [ -n "$pid" ] && [ -e /proc/$pid ]; do
             kill $pid
             sleep .1
-        fi
+        done
     done
 }
 
 camp()
 {
     for account in $(accounts $@); do
-        client=$(get_client takp-${account})
+        client=$(client ${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
-            sleep .1
+            sleep .2
             xdotool type /camp
             xdotool key Return
         fi
     done
     sleep 35
+    for account in $(accounts $@); do
+        client=$(client ${account})
+        if [ -n "$client" ]; then
+            xdotool windowactivate ${client}
+            sleep 1
+            xdotool key Escape
+        fi
+    done
+    sleep 5
     close $@
 }
 
 emote()
 {
     for account in $(accounts $@); do
-        client=$(get_client takp-${account})
+        client=$(client ${account})
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep .1
@@ -515,6 +571,8 @@ nparse()
     cd $1
     ./nparse.py &
 }
+
+collect_window_info
 
 if [ ${#@} -eq 0 ]; then
     print_help
