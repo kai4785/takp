@@ -73,6 +73,7 @@ struct Battle
     void (*magic)(struct Battle* this, int64_t now, struct Action* action);
     void (*heal)(struct Battle* this, int64_t now, struct Action* action);
     void (*death)(struct Battle* this, int64_t now, struct Action* action);
+    void (*sort)(struct Battle* this);
     void (*dtor)(struct Battle* this);
 };
 

@@ -38,6 +38,7 @@ void Battle_holyBlade(struct Battle* this, int64_t now, struct Action* action);
 void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 void Battle_death(struct Battle* this, int64_t now, struct Action* action);
+void Battle_sort(struct Battle* this);
 
 // Helper Functions
 double dps(struct Damage damage, int64_t seconds)
@@ -120,6 +121,7 @@ void Battle_ctor(struct Battle* this)
         .magic = &Battle_magic,
         .heal = &Battle_heal,
         .death = &Battle_death,
+        .sort = &Battle_sort,
         .dtor = &Battle_dtor
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
@@ -212,19 +214,20 @@ void Battle_report(struct Battle* this)
     printf(" - ");
     unparseDate(this->m_end, &date);
     printf("%.*s", (int)date.length, date.data);
-    printf("]   ===============\n");
-    #define break_str "-------------------------------------------------------------------------------------------------------"
+    printf("]   ================\n");
+    #define break_str "--------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
-    #define melee_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
-    #define backstab_format "%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define melee_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
+    #define backstab_format "%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
     #define crit_format backstab_format
     #define crip_format backstab_format
     #define holyBlade_format backstab_format
     #define magic_format backstab_format
-    #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %6.2f\n"
+    #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
     #define death_format "%-35.*s %-30.*s %s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
     printf("%s\n", break_str);
+    Battle_sort(this);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
     {
         int linesPrinted = 0;
@@ -255,75 +258,78 @@ void Battle_report(struct Battle* this)
             totalHits += fight->m_melee.hits;
             totalDamage += fight->m_melee.damage;
             linesPrinted++;
-            if(fight->m_backstab.hits > 0)
+            if(config->extra)
             {
-                printf(backstab_format,
-                    "",
-                    "  *backstabs",
-                    "",
-                    fight->m_backstab.hits,
-                    hps(fight->m_backstab, fightSeconds),
-                    fight->m_backstab.damage,
-                    dph(fight->m_backstab),
-                    dps(fight->m_backstab, fightSeconds)
-                );
-                linesPrinted++;
-            }
-            if(fight->m_crit.hits > 0)
-            {
-                printf(crit_format,
-                    "",
-                    "  *critical hits",
-                    "",
-                    fight->m_crit.hits,
-                    hps(fight->m_crit, fightSeconds),
-                    fight->m_crit.damage,
-                    dph(fight->m_crit),
-                    dps(fight->m_crit, fightSeconds)
-                );
-                linesPrinted++;
-            }
-            if(fight->m_crip.hits > 0)
-            {
-                printf(crip_format,
-                    "",
-                    "  *crippling blows",
-                    "",
-                    fight->m_crip.hits,
-                    hps(fight->m_crip, fightSeconds),
-                    fight->m_crip.damage,
-                    dph(fight->m_crip),
-                    dps(fight->m_crip, fightSeconds)
-                );
-                linesPrinted++;
-            }
-            if(fight->m_holyBlade.hits > 0)
-            {
-                printf(holyBlade_format,
-                    "",
-                    "  *holy blade",
-                    "",
-                    fight->m_holyBlade.hits,
-                    hps(fight->m_holyBlade, fightSeconds),
-                    fight->m_holyBlade.damage,
-                    dph(fight->m_holyBlade),
-                    dps(fight->m_holyBlade, fightSeconds)
-                );
-                linesPrinted++;
-            }
-            if(fight->m_magic.hits > 0)
-            {
-                printf(magic_format,
-                    "",
-                    "  *spell/ds",
-                    "",
-                    fight->m_magic.hits,
-                    hps(fight->m_magic, fightSeconds),
-                    fight->m_magic.damage,
-                    dph(fight->m_magic),
-                    dps(fight->m_magic, fightSeconds)
-                );
-                linesPrinted++;
+                if(fight->m_backstab.hits > 0)
+                {
+                    printf(backstab_format,
+                        "",
+                        "  *backstabs",
+                        "",
+                        fight->m_backstab.hits,
+                        hps(fight->m_backstab, fightSeconds),
+                        fight->m_backstab.damage,
+                        dph(fight->m_backstab),
+                        dps(fight->m_backstab, fightSeconds)
+                    );
+                    linesPrinted++;
+                }
+                if(fight->m_crit.hits > 0)
+                {
+                    printf(crit_format,
+                        "",
+                        "  *critical hits",
+                        "",
+                        fight->m_crit.hits,
+                        hps(fight->m_crit, fightSeconds),
+                        fight->m_crit.damage,
+                        dph(fight->m_crit),
+                        dps(fight->m_crit, fightSeconds)
+                    );
+                    linesPrinted++;
+                }
+                if(fight->m_crip.hits > 0)
+                {
+                    printf(crip_format,
+                        "",
+                        "  *crippling blows",
+                        "",
+                        fight->m_crip.hits,
+                        hps(fight->m_crip, fightSeconds),
+                        fight->m_crip.damage,
+                        dph(fight->m_crip),
+                        dps(fight->m_crip, fightSeconds)
+                    );
+                    linesPrinted++;
+                }
+                if(fight->m_holyBlade.hits > 0)
+                {
+                    printf(holyBlade_format,
+                        "",
+                        "  *holy blade",
+                        "",
+                        fight->m_holyBlade.hits,
+                        hps(fight->m_holyBlade, fightSeconds),
+                        fight->m_holyBlade.damage,
+                        dph(fight->m_holyBlade),
+                        dps(fight->m_holyBlade, fightSeconds)
+                    );
+                    linesPrinted++;
+                }
+                if(fight->m_magic.hits > 0)
+                {
+                    printf(magic_format,
+                        "",
+                        "  *spell/ds",
+                        "",
+                        fight->m_magic.hits,
+                        hps(fight->m_magic, fightSeconds),
+                        fight->m_magic.damage,
+                        dph(fight->m_magic),
+                        dps(fight->m_magic, fightSeconds)
+                    );
+                    linesPrinted++;
+                }
             }
         }
         if(linesPrinted > 0)
@@ -530,4 +536,24 @@ void Battle_death(struct Battle* this, int64_t now, struct Action* action)
     }
     this->m_death.push(&this->m_death, &death);
     Battle_keepalive(this, now);
+}
+
+void Battle_sort(struct Battle* this)
+{
+    // Sort fight by dps
+    // Then go through and sort pcIds by where they appear in the fight dps.
+    if (this->m_fight.size < 2)
+        return;
+    for(size_t i = 0; i < this->m_fight.size - 1; i++)
+    {
+        for(size_t j = 0; j < this->m_fight.size - i - 1; j++)
+        {
+            struct Fight* left = this->m_fight.at(&this->m_fight, j);
+            struct Fight* right = this->m_fight.at(&this->m_fight, j+1);
+            if (dps(left->m_melee, left->seconds(left)) < dps(right->m_melee, right->seconds(right)))
+            {
+                this->m_fight.swap(&this->m_fight, j, j+1);
+            }
+        }
+    }
 }

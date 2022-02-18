@@ -23,6 +23,7 @@ struct Array
     void (*resize)(struct Array* this, size_t newCapacity);
     void (*clear)(struct Array* this);
     void (*push)(struct Array* this, void* datum);
+    void (*swap)(struct Array* this, size_t lpos, size_t rpos);
     void* (*at)(struct Array* this, size_t pos);
     void (*datum_dtor)(void* datum);
     void (*dtor)(struct Array* this);

@@ -6,6 +6,7 @@
 
 // Member function declarations
 void Array_push(struct Array* this, void* datum);
+void Array_swap(struct Array* this, size_t lpos, size_t rpos);
 void Array_resize(struct Array* this, size_t newCapacity);
 void Array_clear(struct Array* this);
 void* Array_at(struct Array* this, size_t pos);
@@ -19,6 +20,7 @@ void Array_ctor(struct Array* this, size_t datumSize)
     this->resize = &Array_resize;
     this->clear = &Array_clear;
     this->push = &Array_push;
+    this->swap = &Array_swap;
     this->at = &Array_at;
     this->datum_dtor = NULL;
     this->dtor = &Array_dtor;
@@ -131,6 +133,17 @@ void Array_push(struct Array* this, void* datum)
     }
     memcpy(this->data + (this->datumSize * this->size), datum, this->datumSize);
     this->size++;
+}
+
+void Array_swap(struct Array* this, size_t lpos, size_t rpos)
+{
+    uint8_t *lhs = this->data + (this->datumSize * lpos);
+    uint8_t *rhs = this->data + (this->datumSize * rpos);
+    uint8_t *tmp = malloc(this->datumSize);
+    memcpy(tmp, lhs, this->datumSize);
+    memcpy(lhs, rhs, this->datumSize);
+    memcpy(rhs, tmp, this->datumSize);
+    free(tmp);
 }
 
 void Array_dtor(struct Array* this)

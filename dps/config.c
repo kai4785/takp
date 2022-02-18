@@ -9,6 +9,7 @@ struct Config* configInstance()
         config.follow = false;
         config.history = false;
         config.reportByTarget = false;
+        config.extra = false;
         config.me = (struct SimpleString)SIMPLE_STRING("You");
         config.logfile = NULL;
         config.since = -1;

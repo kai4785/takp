@@ -112,7 +112,7 @@ bool tellme(struct SimpleString line)
 
 void print_help()
 {
-    printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--until <date>] [--keepalive <seconds>] [--verbosity <level>] [--help]\n");
+    printf("dps [--log <file>] [--me <name>] [--history] [--follow] [--since <date>] [--until <date>] [--keepalive <seconds>] [--extra] [--verbosity <level>] [--help]\n");
     printf("\t--log <file>            Filename of the log to parse\n");
     printf("\t--me <name>             The name of the character that generated the logs\n");
     printf("\t--follow                Parse the log file live as it is written to\n");
@@ -120,6 +120,7 @@ void print_help()
     printf("\t--since <date>          Skip to <date> in the log (see --history)\n");
     printf("\t--until <date>          Stop at <date> in the log (see --history)\n");
     printf("\t--keepalive <seconds>   The number of seconds between battles\n");
+    printf("\t--extra                 Print extra breakdown in dps\n");
     printf("\t--verbosity <level>     Pump up the verbosity\n");
     printf("\t--help                  Print this help text\n");
     printf("\n");
@@ -139,6 +140,7 @@ int main(int argc, char **argv)
     struct String opt_reportByTarget = CONST_STRING("--by-target");
     struct String opt_help = CONST_STRING("--help");
     struct String opt_verbosity = CONST_STRING("--verbosity");
+    struct String opt_extra = CONST_STRING("--extra");
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
@@ -177,7 +179,7 @@ int main(int argc, char **argv)
         {
             config->follow = true;
         }
-        else if(opt_follow.op_equal(&opt_reportByTarget, &arg))
+        else if(opt_reportByTarget.op_equal(&opt_reportByTarget, &arg))
         {
             config->reportByTarget = true;
         }
@@ -211,6 +213,10 @@ int main(int argc, char **argv)
             {
                 fprintf(stderr, "Error parsing --keepalive string '%s'\n", *here);
             }
+        }
+        else if(opt_extra.op_equal(&opt_extra, &arg))
+        {
+            config->extra = true;
         }
         else if(opt_verbosity.op_equal(&opt_verbosity, &arg))
         {
