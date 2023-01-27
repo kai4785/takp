@@ -7,9 +7,13 @@ project(takp_launcher VERSION 0.0.1)
 
 include(FindThreads)
 set(launcher_SOURCES
-    context.h
     context.cpp
+    context.h
+    display.cpp
+    display.h
     main.cpp
+    window.cpp
+    window.h
 )
 
 add_executable(takp_launcher ${launcher_SOURCES})
