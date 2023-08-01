@@ -540,7 +540,7 @@ activate()
     if [ "${client}" -eq "${currentWindow}" ]; then
         echo "Moving mouse"
         xdotool mousemove $((1920 / 2 + 1920 * ${index})) $((1080/2))
-    elif ! wmctrl -a takp-${account}; then
+    elif ! xdotool windowactivate ${client}; then
         echo "Couldn't find a window for ${account}" >&2
     fi
 }
