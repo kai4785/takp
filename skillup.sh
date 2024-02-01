@@ -3,9 +3,9 @@
 window=$1
 key=$2
 casttime=$3
-sittime=0
-[ -n "$4" ] && sittime=$4
-castspersit=$5
+[ -n "$4" ] && sittime=$4 || sittime=0
+[ -n "$5" ] && castspersit=$5 || castspersit=1
+[ -n "$6" ] && rotate=$6 || rotate=1
 
 eval $(xdotool getmouselocation --shell)
 x_mouse=$X
@@ -27,19 +27,13 @@ window=$(xdotool search --name $window)
 while true; do
     date
     for num in $(seq 1 $castspersit); do
-        #key=$(( (key++ % 3) + 1))
+        #key=$(( (key++ % rotate) + 1))
         echo "Cast [$key] $num/$castspersit"
         (
             flock 200
             xdotool windowactivate $window
             _sleep .5
-            #xdotool key --clearmodifiers --delay 30 slash s t a n d Return
-            #xdotool key --clearmodifiers Tab
-            #_sleep .25
-            #xdotool key --clearmodifiers F1
-            #xdotool key --clearmodifiers --delay 30 slash p e t space t a r g e t Return
-            #_sleep .25
-            xdotool key --clearmodifiers --delay 80 $key $key $key $key $key $key $key $key $key $key
+            xdotool key --clearmodifiers --delay 160 $key $key $key $key $key
             _sleep .25
         ) 200>~/.takp.screen.lock
         echo "Waiting $casttime for spell"
@@ -72,6 +66,3 @@ while true; do
         _sleep 1
     fi
 done
-
-# Pip 208
-# Sam 185

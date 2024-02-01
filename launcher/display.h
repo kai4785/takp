@@ -3,6 +3,8 @@
 
 #include "window.h"
 
+#include <optional>
+
 #include <X11/Xlib.h>
 
 #include <string>
@@ -14,7 +16,8 @@ public:
     ~XDisplay();
     operator Display*() { return m_display; }
     Window root() const;
-    XWindow findWindow(const std::string name) const;
+    std::optional<XWindow> findWindow(const std::string name) const;
+    bool windowExists(Window window) const;
     XWindow getInputFocus() const;
 private:
     Display *m_display;

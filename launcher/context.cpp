@@ -4,6 +4,8 @@
 #include <string>
 #include <stdexcept>
 #include <map>
+#include <thread>
+#include <chrono>
 
 #include <errno.h>
 #include <poll.h>
@@ -12,21 +14,49 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <cstring>
+#include <cmath>
 
 using namespace std;
+
+void Context::Client::close_window()
+{
+    if(window)
+    {
+        XSelectInput(window->display(), window->window(), NoEventMask);
+    }
+    window = std::nullopt;
+}
+
+void Context::Client::reset()
+{
+    close_window();
+    name.clear();
+    keycode = 0;
+    modifiers = 0;
+    autofire = false;
+}
+
+void Context::Autofire::reset()
+{
+    keycode = 0;
+    modifiers = 0;
+    keypress =0;
+}
 
 Context::Context()
     : m_display()
     , m_running(true)
 {
+    m_autofire.running.store(false);
 }
 
 Context::~Context()
 {
     for(auto& client : m_clients)
     {
-        ungrab(client);
+        client.reset();
     }
+    m_autofire.reset();
     cout << "Closing display" << endl;
 }
 
@@ -42,7 +72,7 @@ void Context::sig_handler(int signal)
     Context::instance().cancel();
 }
 
-bool Context::set_client(int ordinal, const std::string &name, int key, int modifiers)
+void Context::set_client(int ordinal, const std::string &name, int key, int modifiers)
 {
     cout << "set_client" << ordinal << "," << name << "," << key << "," << modifiers << endl;
     auto& client = m_clients[ordinal];
@@ -50,43 +80,78 @@ bool Context::set_client(int ordinal, const std::string &name, int key, int modi
        client.name == name &&
        client.keycode == XKeysymToKeycode(m_display, key) &&
        client.modifiers == modifiers)
-        return true;
-    ungrab(client);
+        return;
+    client.reset();
+    ungrab(client.keycode, client.modifiers);
     client.ordinal = ordinal;
     client.name = name;
     client.keycode = XKeysymToKeycode(m_display, key);
     client.modifiers = modifiers;
-    return grab(client);
+    client.autofire = false;
+    grab(client.keycode, client.modifiers);
+    client.window = m_display.findWindow(client.name);
 }
 
-bool Context::grab(const Client& client)
+bool Context::set_autofire(Client& client, int key, int modifiers, int keypress, float delay, float haste, float quiver_haste, int32_t ping_delay)
 {
-    cout << "Registering hotkey: " << client.keycode << ":" << client.modifiers << endl;
-    auto result = XGrabKey(m_display, client.keycode, client.modifiers, m_display.root(), m_owner_events, m_pointer_mode, m_keyboard_mode);
-    cout << "XGrabKey: " << client.keycode << " result: " << result << endl;
+    client.autofire = true;
+    cout << "set_autofire " << client.name << "," << key << "," << modifiers << "," << keypress << "," << delay << "," << haste << endl;
+    m_autofire.ordinal = client.ordinal;
+#if 0
+    m_autofire.button_delay = std::trunc((delay*100)/(1+(haste+quiver_haste)/100));
+    // https://www.takproject.net/forums/index.php?threads/3-17-2021.18542/#post-94389
+    if(m_autofire.button_delay < 1000)
+        m_autofire.button_delay = std::trunc((delay*100)/(1+haste/100));
+#else
+    m_autofire.button_delay = std::trunc((delay*100)/(1+haste/100)*(1.0-quiver_haste/100));
+    // https://www.takproject.net/forums/index.php?threads/3-17-2021.18542/#post-94389
+    if(m_autofire.button_delay < 1000)
+        m_autofire.button_delay = std::trunc((delay*100)/(1+haste/100));
+#endif
+    m_autofire.ping_delay = ping_delay;
+    cout << "Button delay: " << m_autofire.button_delay << " ms" << endl;
+    if(m_autofire.keycode == XKeysymToKeycode(m_display, key) &&
+       m_autofire.modifiers == modifiers &&
+       m_autofire.keypress == XKeysymToKeycode(m_display, keypress))
+    {
+        return true;
+    }
+    if(m_autofire.keycode)
+    {
+        m_autofire.reset();
+        ungrab(m_autofire.keycode, m_autofire.modifiers);
+    }
+    m_autofire.keycode = XKeysymToKeycode(m_display, key);
+    m_autofire.modifiers = modifiers;
+    m_autofire.keypress = XKeysymToKeycode(m_display, keypress);
+    return grab(m_autofire.keycode, m_autofire.modifiers);
+}
+
+bool Context::grab(int keycode, int modifiers)
+{
+    cout << "Registering hotkey: " << keycode << ":" << modifiers << endl;
+    auto result = XGrabKey(m_display, keycode, modifiers, m_display.root(), m_owner_events, m_pointer_mode, m_keyboard_mode);
+    cout << "XGrabKey: " << keycode << " result: " << result << endl;
     if(!result)
         throw std::runtime_error("Bad news!");
     return !!result;
 }
 
-void Context::ungrab(Client& client)
+void Context::ungrab(int keycode, int modifiers)
 {
-    if(!client.keycode)
+    if(!keycode)
         return;
-    cout << "XUngrabKey: " << client.keycode << ":" << client.modifiers << endl;
-    XUngrabKey(m_display, client.keycode, client.modifiers, m_display.root());
-    client.name.clear();
-    client.keycode = 0;
-    client.modifiers = 0;
+    cout << "XUngrabKey: " << keycode << ":" << modifiers << endl;
+    XUngrabKey(m_display, keycode, modifiers, m_display.root());
 }
 
 int x_error_handler(Display* display, XErrorEvent* event)
 {
     auto buf = new char[256];
     XGetErrorText(display, event->error_code, buf, 256);
-    cout << "XError: " << event->error_code << ": " << buf << endl;
+    cout << "XError: " << event->resourceid << " : " << event->error_code << ": " << buf << endl;
     delete [] buf;
-    Context::instance().cancel();
+    Context::instance().bad_window(event->resourceid);
     return 0;
 }
 
@@ -99,6 +164,10 @@ void Context::dummy_keypress()
     event.display = m_display;
     event.root = m_display.root();
     XSendEvent(m_display, m_display.root(), true, KeyPressMask, (XEvent*)&event);
+    XFlush(m_display);     // make event happen immediately
+
+    event.type = KeyRelease;
+    XSendEvent(m_display, m_display.root(), true, KeyReleaseMask, (XEvent*)&event);
     XFlush(m_display);     // make event happen immediately
 }
 
@@ -206,10 +275,11 @@ void Context::read_inotify(int fd, int wd)
 
 void Context::kb_event_thread()
 {
-    bool consumed_event = false;
     XEvent ev;
 
-    XSelectInput(m_display, m_display.root(), KeyPressMask);
+    // I'm undecided on whether or not I like Press or Release, or some combination of both
+    XSelectInput(m_display, m_display.root(), KeyPressMask | KeyReleaseMask);
+    //XSelectInput(m_display, m_display.root(), KeyPressMask);
     try
     {
         while(m_running.load())
@@ -222,24 +292,116 @@ void Context::kb_event_thread()
             switch(ev.type)
             {
                 case KeyPress:
-                    XUngrabKeyboard(m_display, ev.xkey.time);
-                    consumed_event = process_keycode(ev.xkey.keycode, ev.xkey.state, ev.xkey.time);
-                    XFlush(m_display);
-#if 0
-                    if(!consumed_event)
+                    cout << "KeyPress: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
+                    //XUngrabKeyboard(m_display, ev.xkey.time);
+                    keyPress(ev.xkey.keycode, ev.xkey.state, ev.xkey.time);
+                    //XFlush(m_display);
+                    break;
+                case KeyRelease:
+                {
+                    cout << "KeyRelease: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
+                    //XUngrabKeyboard(m_display, ev.xkey.time);
+                    keyRelease(ev.xkey.keycode, ev.xkey.state, ev.xkey.time);
+                    //XFlush(m_display);
+                }
+                case FocusIn:
+                {
+                    cout << "Focus in: " << ev.xfocus.window << endl;
+                    //auto client = client_from_window(ev.xfocus.window);
+                    //if(client)
+                        //cout << "  Focus In! " << client->name << endl;
+                    break;
+                }
+                case FocusOut:
+                {
+                    cout << "Focus out: " << ev.xfocus.window << endl;
+                    auto client = client_from_window(ev.xfocus.window);
+                    if(client && client->autofire && !client->window->hasInputFocus())
                     {
-                        //auto window = m_display.getInputFocus();
-                        auto window = XWindow(m_display, 0x05400001);
-                        cout << "Forwarding event to window: " << window.name() << endl;
-                        XSendEvent(m_display, window.window(), true, ev.xkey.type, &ev);
-                        XFlush(m_display);
+                        stop_autofire();
                     }
-#endif
+                    if(client)
+                    {
+                        Window focusedWindow = 0;
+                        int focus_state = 0;
+                        XGetInputFocus(m_display, &focusedWindow, &focus_state);
+                        XWindow newWindow(m_display, focusedWindow);
+                        if(newWindow != client->window->window())
+                            cout << " Focus switched from client: '" << client->name << "' to window: '" << newWindow.name() << "'" << endl;
+                    }
+                    break;
+                }
+                case DestroyNotify:
+                case UnmapNotify:
+                {
+                    bad_window(ev.xdestroywindow.window);
+                    break;
+                }
+                case MappingNotify:
+                case ConfigureNotify:
+                    // Ignored
                     break;
                 default:
                     cout << "  Something else: " << ev.type << endl;
                     break;
             }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        m_running.store(false);
+    }
+}
+
+void Context::autofire_thread()
+{
+    try
+    {
+        while(m_running.load())
+        {
+            std::unique_lock lock(m_autofire.mutex);
+            m_autofire.cv.wait(lock);
+            auto delay = std::chrono::milliseconds(m_autofire.button_delay);
+            auto ping_delay = std::chrono::milliseconds(m_autofire.ping_delay);
+            auto mash_delay = std::chrono::milliseconds(20); // 50 FPS is a frame every 20ms
+            auto focus_delay = std::chrono::milliseconds(100); // Wait for the window manager to switch focus.
+            auto& window = m_clients[m_autofire.ordinal].window;
+            auto startTime = std::chrono::high_resolution_clock::now();
+            auto endTime = std::chrono::high_resolution_clock::now();
+
+            cout << "  Starting autofire! " << delay.count() << "ms + " << ping_delay.count() << "ms" << endl;
+            // Wait 100ms time to allow XSelect a little time to switch input focus back to the client.
+            m_autofire.cv.wait_for(lock, focus_delay);
+            while(m_autofire.running.load())
+            {
+                if(!window)
+                    break;
+                endTime = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+                startTime = endTime;
+                cout << "  Pew! " << window->name() << " " << duration << "ms/" << m_autofire.button_delay << "ms" << endl;
+                for(int mashing_time = 0; mashing_time <= ping_delay.count(); mashing_time += mash_delay.count() && m_autofire.running.load())
+                {
+                    XKeyEvent event{0};
+                    event.type = KeyPress;
+                    event.keycode = m_autofire.keypress;
+                    event.display = m_display;
+                    event.root = m_display.root();
+                    XSendEvent(m_display, window->window(), true, KeyPressMask, (XEvent*)&event);
+                    XFlush(m_display);     // make event happen immediately
+
+                    event.type = KeyRelease;
+                    XSendEvent(m_display, window->window(), true, KeyReleaseMask, (XEvent*)&event);
+                    XFlush(m_display);     // make event happen immediately
+
+                    mashing_time += mash_delay.count();
+                    std::this_thread::sleep_for(mash_delay);
+                }
+                //cout << "Sleeping for " << m_autofire.button_delay << "ms" << endl;
+                m_autofire.cv.wait_for(lock, delay);
+            }
+            cout << "  Stopping autofire!" << endl;
         }
     }
     catch(const std::exception& e)
@@ -255,6 +417,8 @@ void Context::start()
 
     m_inotify_future = std::async(std::launch::async, &Context::inotify_thread, this);
 
+    m_autofire_future = std::async(std::launch::async, &Context::autofire_thread, this);
+
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
     XSetErrorHandler(x_error_handler);
@@ -262,43 +426,88 @@ void Context::start()
     m_event_future = std::async(std::launch::async, &Context::kb_event_thread, this);
 }
 
-bool Context::process_keycode(int keycode, int state, Time time)
+void Context::keyPress(int keycode, int state, Time time)
 {
-    switch(keycode)
+    if(keycode == 0)
     {
-        case 0:
-            cout << "Special keycode 0" << endl;
-            parse_config();
-            return true;
-            break;
-        default:
-            auto modifiers = state & 0x7F; // 127
-            cout << "Hot key pressed! " << keycode << ":" << modifiers << "(" << state << ")" << endl;
-            for(auto& client : m_clients)
-            {
-                if (keycode == client.keycode && modifiers == client.modifiers)
-                {
-                    XWindow window = m_display.findWindow(client.name);
-
-                    if(window.name() == client.name)
-                    {
-                        cout << "Found Client Window: " << window.name() << endl;
-                        if(window.isActive())
-                        {
-                            window.recenterMouse();
-                        }
-                        else
-                        {
-                            window.raise(time);
-                        }
-                        return true;
-                    }
-                    break;
-                }
-            }
-            break;
+        cout << "Special keycode 0" << endl;
+        parse_config();
+        return;
     }
-    return false;
+    auto modifiers = state & 0x7F; // 127
+    //cout << "Hot key pressed! " << keycode << ":" << modifiers << "(" << state << ")" << endl;
+
+    if(keycode == m_autofire.keycode && modifiers == m_autofire.modifiers)
+    {
+        auto& window = m_clients[m_autofire.ordinal].window;
+        if(!window)
+        {
+            cout << " ** Autofire window not set. skipping." << endl;
+            return;
+        }
+        if(!window->hasInputFocus())
+        {
+            cout << " ** Autofire window not active. skipping." << endl;
+            stop_autofire();
+            return;
+        }
+        m_autofire.running.exchange(!m_autofire.running.load());
+        m_autofire.cv.notify_all();
+        return;
+    }
+
+    auto client = client_from_key(keycode, modifiers);
+    if(!client)
+        return;
+
+    if(client->window)
+    {
+        if(client->autofire)
+            m_autofire.ordinal = client->ordinal;
+        else
+            stop_autofire();
+
+		if(!client->window->isActive())
+        {
+            cout << "  Raising client: '" << client->name << "' (" << client->window->window() << ")" << endl;
+			client->window->raise(time);
+        }
+        else
+        {
+            client->window->recenterMouse();
+        }
+
+        return;
+    }
+
+}
+
+void Context::keyRelease(int keycode, int state, Time time)
+{
+    if(keycode == 0)
+    {
+        return;
+    }
+
+    auto modifiers = state & 0x7F; // 127
+
+    if(keycode == m_autofire.keycode && modifiers == m_autofire.modifiers)
+        return;
+
+    auto client = client_from_key(keycode, modifiers);
+    if(!client)
+        return;
+
+    if(client->window)
+        cout << " KeyRelease refreshing Window: " << client->name << " (" << client->window->window() << ")" << endl;
+    else
+        cout << " KeyRelease refreshing Window: " << client->name << " (NONE)" << endl;
+    client->window = m_display.findWindow(client->name);
+    if(client->window)
+    {
+        cout << " KeyRelease refreshed Window: " << client->name << " (" << client->window->window() << ")" << endl;
+        XSelectInput(m_display, client->window->window(), FocusChangeMask | SubstructureNotifyMask);
+    }
 }
 
 void Context::wait()
@@ -312,6 +521,7 @@ void Context::cancel()
     {
         const char nl = '\n';
         write(m_inotify_pipe[1], &nl, 1);
+        stop_autofire(true);
         m_cancel_barrier.set_value();
     }
 }
@@ -376,6 +586,7 @@ void Context::parse_config()
     m_accounts.clear();
     ifstream input(m_config_file);
     vector<string> active_accounts;
+    vector<string> autofire;
     vector<KeySym> keys;
     vector<int> modifiers;
     for(string line; getline(input, line);)
@@ -422,6 +633,15 @@ void Context::parse_config()
             }
             cout << endl;
         }
+        if(key == "autofire")
+        {
+            autofire.clear();
+            parse_config_array(value, autofire);
+            cout << "Autofire found: ";
+            for(auto& v : autofire)
+                cout << v << " ";
+            cout << endl;
+        }
         // This was nice for Bash, but do we want to keep it here forever?
         string account_ = "account_";
         string _password = "_password";
@@ -447,5 +667,54 @@ void Context::parse_config()
         string windowName = prefix + active_accounts[i];
         cout << "[" << i << "]" << windowName << endl;
         set_client(i, windowName, keys[i], modifiers[i]);
+        if(autofire[0] == active_accounts[i] && keys.size() >= 4)
+        {
+            cout << "Autofire key: (" << keys[3] << "|" << modifiers[3] << ")" << endl;
+            cout << "Autofire keypress: (" << keys[4] << ")" << endl;
+            set_autofire(m_clients[i], keys[3], modifiers[3], keys[4],
+                std::stoi(autofire[1]),
+                std::stoi(autofire[2]),
+                std::stoi(autofire[3]),
+                std::stoi(autofire[4])
+            );
+        }
     }
+}
+
+void Context::stop_autofire(bool force)
+{
+    if(m_autofire.running.exchange(false) || force)
+    {
+        m_autofire.cv.notify_all();
+    }
+}
+
+void Context::bad_window(Window window)
+{
+    auto client = client_from_window(window);
+    if(client && client->window)
+    {
+        cout << "  Window closed! " << client->name << ", " << window << endl;
+        client->close_window();
+    }
+}
+
+Context::Client* Context::client_from_window(Window window)
+{
+    for(auto &client : m_clients)
+    {
+        if(client.window && client.window->window() == window)
+            return &client;
+    }
+    return nullptr;
+}
+
+Context::Client* Context::client_from_key(int keycode, int modifiers)
+{
+    for(auto& client : m_clients)
+    {
+        if (keycode == client.keycode && modifiers == client.modifiers)
+            return &client;
+    }
+    return nullptr;
 }

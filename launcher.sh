@@ -5,6 +5,9 @@ set -e
 # Need gtk libs in order to draw windows, and it'll pull in all but the 32bit graphics drivers for x11 we need.
 # CentOS7: gtk3.i686
 
+# TODO: Dependencies
+# xdotool
+# gawk (ubuntu defaults to mawk)
 
 midi=0
 # Config file for usernames and passwords
@@ -64,15 +67,30 @@ gdown40()
 
 # Old-trusty 2.2-staging
 takp_prefix="$HOME/.takp"
-wine_version="2.2-staging"
+
+# Use PlayOnLinux's builds
+#wine_flavor="pol"
+#wine_version="2.2-staging"
+
+# Use GloriousEggroll's custom proton build
+# https://github.com/GloriousEggroll/wine-ge-custom/releases
+wine_flavor="eggroll"
+wine_version="lutris-GE-Proton8-8-x86_64"
+#wine_version="lutris-GE-Proton8-22-x86_64"
+
+# Use Steam's Proton
+#wine_flavor="steam"
+#wine_version=""
 
 # Wine 6.0 + dgVoodoo + dxvk is working!
-wine_version=system
+#wine_flavor="system"
+#wine_version="$(wine --version | sed -r 's/wine-([0-9]).*/\1/')"
 
 # Always needed
+#winetricks_verbs="dinput8 dxvk"
 winetricks_verbs="dinput8"
 
-opts=(takp_prefix wine_version winetricks_verbs wine_base)
+opts=(takp_prefix wine_flavor wine_version winetricks_verbs wine_base wine_prefix)
 commands=(install run install_and_run winetricks wine)
 
 echo_opts()
@@ -111,34 +129,37 @@ while [ -n "$1" ]; do
     esac
 done
 
-# CentOS 7
-steam_apps_dir="$HOME/.local/share/Steam/steamapps"
-# Ubuntu 18.04
-steam_apps_dir="$HOME/.steam/steam/steamapps"
-steam_proton_dir="${steam_apps_dir}/common/Proton 6.3/dist"
-steam_wine_prefix="${steam_proton_dir}/share/default_pfx"
+wine_tag="${wine_flavor}-${wine_version}"
 
 # Depends on parsed arguments
-if [ "${wine_version}" == "system" ]; then
+if [ "${wine_flavor}" == "system" ]; then
     wine_base=/usr
 fi
-if [ -z "${wine_base}" ]; then
+
+if [ "${wine_flavor}" == "pol" ]; then
     wine_base="${takp_prefix}/wineversion/${wine_version}"
 fi
-wine_prefix="${takp_prefix}/wineprefix/${wine_version}"
+
+if [ "${wine_flavor}" == "eggroll" ]; then
+    wine_base="${takp_prefix}/wineversion/${wine_version}"
+fi
+
+if [ -z "${wine_prefix}" ]; then
+    wine_prefix="${takp_prefix}/wineprefix/${wine_tag}"
+fi
+
 wine_bin="${wine_base}/bin/wine"
 wineserver_bin="${wine_base}/bin/wineserver"
+winecfg_bin="${wine_base}/bin/winecfg"
+
 cache_base="${takp_prefix}/cache"
 log_base="${takp_prefix}/logs"
 log_dir="${log_base}/${wine_version}"
-wine_filename="PlayOnLinux-wine-${wine_version}-linux-x86.pol"
-wine_baseurl="https://www.playonlinux.com/wine/binaries/linux-x86"
-wine_url="${wine_baseurl}/${wine_filename}"
-wine_file="${cache_base}/${wine_filename}"
 winetricks_url="https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks"
 winetricks_bin="${cache_base}/winetricks"
 drive_e="${takp_prefix}/drive_e"
 takp_dir="${drive_e}/TAKP"
+gui_launcher_url="https://www.takproject.net/launcher/updates/TAKPLauncher_2.2.3.zip"
 
 # Values for launching TAKP client
 gs_key="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
@@ -149,9 +170,10 @@ export WINEPREFIX="${wine_prefix}"
 export WINE="${wine_bin}"
 #export WINEDEBUG=+relay,+seh,+tid,+d3d,+swapchain,+loaddll,+d3d9
 #export WINEDEBUG="+wgl"
-#export WINEDEBUG=+relay,+seh,+tid
+#export WINEDEBUG=+timestamp,+loaddll,+relay,+seh,+tid
 #export WINEDEBUG=+timestamp,+loaddll,+d3d
 #export WINEDEBUG=+timestamp,+loaddll
+#export WINEDEBUG=all
 
 # You can force wine to ignore installing mono on first run, which doesn't seem to be used by the TAKP client, and it is helpful to test out a fresh wine prefix
 #export WINEDLLOVERRIDES="mscoree,mshtml="
@@ -159,6 +181,45 @@ export WINE="${wine_bin}"
 # With dxvk, you can see fps
 export DXVK_HUD=fps
 #export DXVK_HUD=full
+#export DXVK_FILTER_DEVICE_NAME="NVIDIA GeForce RTX 2060"
+
+install_dgVoodoo()
+{
+    #zipname="dgVoodoo2_75.zip"
+    #zipname="dgVoodoo2_79_3.zip"
+    zipname="dgVoodoo2_8.zip"
+    filename="${cache_base}/${zipname}"
+    if [ ! -e "$filename" ]; then
+        echo "Downloading $zipname"
+        curl -q -s -L -o "$filename" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
+    fi
+    unzip -d "${takp_dir}" "${filename}" "MS/x86*"
+    mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
+    mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
+    rm -fr MS
+    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
+    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
+}
+
+install_dxvk()
+{
+    ver="1.10.3"
+    #ver="2.0"
+    tarname="dxvk-${ver}.tar.gz"
+    filename="${cache_base}/${tarname}"
+    if [ ! -e "$filename" ]; then
+        curl -L -o "$filename" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
+    fi
+    tar -C "${takp_dir}" -xf "${filename}" "dxvk-${ver}/x32"
+    if [ -e ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ]; then
+        mv ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ${takp_dir}/d3d10.dll
+        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d10 /d native /f >/dev/null 2>&1
+    fi
+    mv ${takp_dir}/dxvk-${ver}/x32/d3d11.dll ${takp_dir}/d3d11.dll
+    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d11 /d native /f >/dev/null 2>&1
+
+    rm -fr dxvk-${ver}
+}
 
 install()
 {
@@ -169,21 +230,32 @@ install()
         curl -L "${winetricks_url}" -o "${winetricks_bin}"
         chmod +x "${winetricks_bin}"
     fi
-    if [ "${wine_version}" = "steam" ]; then
+    if [ "${wine_flavor}" = "steam" ]; then
+        # CentOS 7
+        steam_apps_dir="$HOME/.local/share/Steam/steamapps"
+        # Ubuntu 18.04
+        steam_apps_dir="$HOME/.steam/steam/steamapps"
+        steam_proton_dir="${steam_apps_dir}/common/Proton 6.3/dist"
+        steam_wine_prefix="${steam_proton_dir}/share/default_pfx"
+
         if [ ! -e "${wine_base}" ]; then
             mkdir -p "${wine_base}" "${wine_prefix}"
             rsync --exclude=default_pfx -av "${steam_proton_dir}"/ "${wine_base}"/
             rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
         fi
-    elif [ "${wine_version}" = "system" ]; then
+    elif [ "${wine_flavor}" = "system" ]; then
         echo "system wine"
-    else
-        if [ ! -e "${wine_file}" ]; then
-            curl -L "${wine_url}" -o "${wine_file}"
+    elif [ "${wine_flavor}" = "pol" ]; then
+        pol_filename="PlayOnLinux-wine-${wine_version}-linux-x86.pol"
+        pol_baseurl="https://www.playonlinux.com/wine/binaries/linux-x86"
+        pol_url="${pol_baseurl}/${pol_filename}"
+        pol_file="${cache_base}/${pol_filename}"
+        if [ ! -e "${pol_file}" ]; then
+            curl -L "${pol_url}" -o "${pol_file}"
         fi
 
         if [ ! -e "${wine_base}" ]; then
-            tar -C "${takp_prefix}"/ -xf "${wine_file}" wineversion/
+            tar -C "${takp_prefix}"/ -xf "${pol_file}" wineversion/
         fi
     fi
 
@@ -195,14 +267,14 @@ install()
         unzip -d "${drive_e}" "${filename}"
     fi
 
-    if [ $(sha1sum "${takp_dir}/eqgame.dll" | awk '{print $1}') != "e06d07cf1f21922caf31b19eef220655e8e76256" ]; then
-        filename="${cache_base}/freethemouse.zip"
-        if [ ! -e "$filename" ]; then
-            curl -L -o "$filename" 'https://www.dropbox.com/s/zbha7dxydsr92w0/eqgame_dll%20v3.5.3%20for%20ftm.zip?dl=0'
-        fi
-        mv "${takp_dir}"/eqgame.dll{,.dist}
-        unzip -d "${takp_dir}" "${filename}" "eqgame.dll"
-    fi
+#    if [ $(sha1sum "${takp_dir}/eqgame.dll" | awk '{print $1}') != "e06d07cf1f21922caf31b19eef220655e8e76256" ]; then
+#        filename="${cache_base}/freethemouse.zip"
+#        if [ ! -e "$filename" ]; then
+#            curl -L -o "$filename" 'https://www.dropbox.com/s/zbha7dxydsr92w0/eqgame_dll%20v3.5.3%20for%20ftm.zip?dl=0'
+#        fi
+#        mv "${takp_dir}"/eqgame.dll{,.dist}
+#        unzip -d "${takp_dir}" "${filename}" "eqgame.dll"
+#    fi
 
     if [ ! -e ${wine_prefix}/system.reg ]; then
         "${wine_bin}" wineboot -u ||:
@@ -213,30 +285,12 @@ install()
     fi
 
     if [ ! -e ${takp_dir}/d3d8.dll ]; then
-        zipname="dgVoodoo2_75.zip"
-        filename="${cache_base}/${zipname}"
-        if [ ! -e "$filename" ]; then
-            curl -L -o "$filename" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
-        fi
-        unzip -d "${takp_dir}" "${filename}" "MS/x86*"
-        mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
-        mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
+        install_dgVoodoo
     fi
 
+    # TODO: Deprecated in favor of winetricks
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
-        ver="1.9"
-        tarname="dxvk-${ver}.tar.gz"
-        filename="${cache_base}/${tarname}"
-        if [ ! -e "$filename" ]; then
-            curl -L -o "$filename" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
-        fi
-        tar -C "${takp_dir}" -xf "${filename}" "dxvk-${ver}/x32"
-        mv ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ${takp_dir}/d3d10.dll
-        mv ${takp_dir}/dxvk-${ver}/x32/d3d11.dll ${takp_dir}/d3d11.dll
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d10 /d native /f >/dev/null 2>&1
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d11 /d native /f >/dev/null 2>&1
+        install_dxvk
     fi
 }
 
@@ -439,11 +493,12 @@ stop_midi()
 
 startup()
 {
+    collect_window_info
     if [ $midi -eq 1 ]; then
         start_midi
     fi
     launch $@
-    sleep 7
+    sleep 8
     collect_window_info
     login $@
 }
@@ -464,6 +519,7 @@ altReturn()
 # Helper script to move 3 clients to 3 different X positions on the desktop
 position()
 {
+    collect_window_info
     num=0
     sleeptime=.2
     pos=(0 1920 3840)
@@ -472,12 +528,10 @@ position()
         if [ -n "$client" ]; then
             xdotool windowactivate ${client}
             sleep $sleeptime
-            xdotool windowactivate ${client}
-            sleep $sleeptime
+            altReturn ${client}
             xdotool windowmove --sync ${client} ${pos[$num]} 0
             sleep $sleeptime
-            xdotool windowsize --sync ${client} 1920 1080
-            sleep $sleeptime
+            altReturn ${client}
         fi
         num=$((num+1))
     done
@@ -485,6 +539,7 @@ position()
 
 close()
 {
+    collect_window_info
     for account in $(accounts $@); do
         pid=$(client_pid ${account})
         while [ -n "$pid" ] && [ -e /proc/$pid ]; do
@@ -496,6 +551,7 @@ close()
 
 camp()
 {
+    collect_window_info
     for account in $(accounts $@); do
         client=$(client ${account})
         if [ -n "$client" ]; then
@@ -539,7 +595,9 @@ activate()
     currentWindow=$(xdotool getactivewindow)
     if [ "${client}" -eq "${currentWindow}" ]; then
         echo "Moving mouse"
-        xdotool mousemove $((1920 / 2 + 1920 * ${index})) $((1080/2))
+        eval $(xdotool getwindowgeometry --shell $client)
+        x_offset=$X
+        xdotool mousemove $((1920 / 2 + x_offset )) $((1080/2))
     elif ! wmctrl -a takp-${account}; then
         echo "Couldn't find a window for ${account}" >&2
     fi
@@ -572,7 +630,29 @@ nparse()
     ./nparse.py &
 }
 
-collect_window_info
+install_gui_launcher()
+{
+    zipname="TAKPLauncher_2.2.3.zip"
+    filename="${cache_base}/${tarname}"
+    if [ ! -e "$filename" ]; then
+        curl -L -o "$filename" "https://www.takproject.net/launcher/updates/$zipname"
+    fi
+    
+}
+
+gui_launcher()
+{
+    if [ ! -e $takp_dir/TAKPLauncher.exe ]; then
+        install_gui_launcher
+    fi
+}
+
+winecfg()
+{
+    ${winecfg_bin}
+}
+
+#collect_window_info
 
 if [ ${#@} -eq 0 ]; then
     print_help

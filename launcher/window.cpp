@@ -1,6 +1,7 @@
 #include "window.h"
 
 #include <iostream>
+#include <X11/Xatom.h>
 
 XWindow::XWindow(Display *display, Window window)
     : m_display(display)
@@ -61,15 +62,50 @@ const std::string &XWindow::name() const
 
 bool XWindow::isActive() const
 {
-    Window focusedWindow;
-    int focus_state;
+    auto netActiveWindowAtom = XInternAtom(m_display, "_NET_ACTIVE_WINDOW", False);
+
+    auto root = DefaultRootWindow(m_display);
+
+    Atom actualType;
+    int actualFormat;
+    unsigned long nItems, bytesAfter;
+    Window* activeWindow = nullptr;
+
+    if(XGetWindowProperty(m_display,
+        root,
+        netActiveWindowAtom,
+        0,
+        1,
+        False,
+        XA_WINDOW,
+        &actualType,
+        &actualFormat,
+        &nItems,
+        &bytesAfter,
+        (unsigned char**)&activeWindow) != Success || nItems != 1)
+    {
+        std::cout << "  Couldn't find active window." << std::endl;
+        return false;
+    }
+
+    bool _isActive = (activeWindow && *activeWindow == m_window);
+    if(activeWindow)
+        XFree(activeWindow);
+
+    return _isActive;
+}
+
+bool XWindow::hasInputFocus() const
+{
+    Window focusedWindow = 0;
+    int focus_state = 0;
     XGetInputFocus(m_display, &focusedWindow, &focus_state);
     return m_window == focusedWindow;
 }
 
 void XWindow::raise(Time time) const
 {
-    std::cout << "Raising window!" << std::endl;
+    //std::cout << "Raising window! " << m_window << std::endl;
     XEvent event = { 0 };
     event.xclient.type = ClientMessage;
     event.xclient.serial = 0;
@@ -92,6 +128,6 @@ void XWindow::recenterMouse() const
     XGetWindowAttributes(m_display, m_window, &attributes);
     int newx = attributes.x + attributes.width / 2;
     int newy = attributes.y + attributes.height / 2;
-    std::cout << "Moving Mouse! [" << newx << "," << newy << "]" << std::endl;
+    //std::cout << "Moving Mouse! [" << newx << "," << newy << "]" << std::endl;
     XWarpPointer(m_display, None, XDefaultRootWindow(m_display), 0, 0, 0, 0, newx, newy);
 }

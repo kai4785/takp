@@ -16,10 +16,12 @@ public:
         int h;
     };
     XWindow(Display *display, Window window);
-    operator Window() { return m_window; };
-    Window window() { return m_window; };
+    operator Window() { return m_window; }
+    Window window() { return m_window; }
+    Display *display() { return m_display; }
     const std::string &name() const;
     bool isActive() const;
+    bool hasInputFocus() const;
     void raise(Time time) const;
     void recenterMouse() const;
 private:
