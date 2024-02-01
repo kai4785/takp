@@ -54,4 +54,16 @@ static inline const struct String _CONST_STRING(const char* data, size_t length)
 
 extern struct SimpleString g_empty;
 
+static inline double percent(int64_t numerator, int64_t divisor)
+{
+    if (!divisor) return 0;
+    return (double)numerator / (double)divisor * 100;
+}
+
+static inline double ratio(int64_t numerator, int64_t divisor)
+{
+    if(!divisor) return 0;
+    return (double)numerator / (double)divisor;
+}
+
 #endif // UTILITY_H

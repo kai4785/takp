@@ -68,6 +68,16 @@ bool tellme(struct SimpleString line)
             battle->melee(battle, dateseconds, &action);
             break;
         }
+        case MISS:
+        case PARRY:
+        case DODGE:
+        case RIPOSTE:
+        case BLOCK:
+        case ABSORB:
+        {
+            battle->miss(battle, dateseconds, &action);
+            break;
+        }
         case CRIT:
         {
             battle->crit(battle, dateseconds, &action);
@@ -121,6 +131,8 @@ void print_help()
     printf("\t--until <date>          Stop at <date> in the log (see --history)\n");
     printf("\t--keepalive <seconds>   The number of seconds between battles\n");
     printf("\t--extra                 Print extra breakdown in dps\n");
+    printf("\t--misses                Print miss information\n");
+    printf("\t--by-verb               Output damage by verb\n");
     printf("\t--verbosity <level>     Pump up the verbosity\n");
     printf("\t--help                  Print this help text\n");
     printf("\n");
@@ -141,6 +153,8 @@ int main(int argc, char **argv)
     struct String opt_help = CONST_STRING("--help");
     struct String opt_verbosity = CONST_STRING("--verbosity");
     struct String opt_extra = CONST_STRING("--extra");
+    struct String opt_misses = CONST_STRING("--misses");
+    struct String opt_byverb = CONST_STRING("--by-verb");
     bool help = false;
 
     // Ew, manual parsing? Don't mess up, cause I'll just barf.
@@ -168,7 +182,8 @@ int main(int argc, char **argv)
             if(logfile.endsWith(&logfile, &_loginse_txt))
             {
                 size_t pos = logfile.find(&logfile, &eqlog_, NULL);
-                config->me = (struct SimpleString){ logfile.data + eqlog_.length + pos, logfile.length - eqlog_.length - pos - _loginse_txt.length };
+                if(pos != SIZE_MAX)
+                    config->me = (struct SimpleString){ logfile.data + eqlog_.length + pos, logfile.length - eqlog_.length - pos - _loginse_txt.length };
             }
         }
         else if(opt_history.op_equal(&opt_history, &arg))
@@ -217,6 +232,14 @@ int main(int argc, char **argv)
         else if(opt_extra.op_equal(&opt_extra, &arg))
         {
             config->extra = true;
+        }
+        else if(opt_misses.op_equal(&opt_misses, &arg))
+        {
+            config->misses = true;
+        }
+        else if(opt_byverb.op_equal(&opt_byverb, &arg))
+        {
+            config->byVerb = true;
         }
         else if(opt_verbosity.op_equal(&opt_verbosity, &arg))
         {

@@ -8,15 +8,39 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-struct Damage
+struct MeleeDamage;
+void MeleeDamage_ctor(struct MeleeDamage* this);
+struct MeleeDamage
+{
+    int64_t m_hits;
+    int64_t m_damage;
+    int64_t m_crit_hits;
+    int64_t m_crit_damage;
+    int64_t m_crip_hits;
+    int64_t m_crip_damage;
+    int64_t m_holy_hits;
+    int64_t m_holy_damage;
+    int64_t m_misses;
+    int64_t m_parries;
+    int64_t m_dodges;
+    int64_t m_ripostes;
+    int64_t m_blocks;
+    int64_t m_absorb;
+    int64_t (*swings)(struct MeleeDamage* this);
+    int64_t (*misses)(struct MeleeDamage* this);
+    int64_t (*strikes)(struct MeleeDamage* this);
+    int64_t (*avoided)(struct MeleeDamage* this);
+    int64_t (*hits)(struct MeleeDamage* this);
+    int64_t (*damage)(struct MeleeDamage* this);
+};
+
+struct MagicDamage
 {
     int64_t hits;
     int64_t damage;
+    int64_t crit_hits;
+    int64_t crit_damage;
 };
-
-double dps(struct Damage damage, int64_t seconds);
-double hps(struct Damage damage, int64_t seconds);
-double dph(struct Damage damage);
 
 struct Fight;
 void Fight_ctor(struct Fight* this);
@@ -27,14 +51,18 @@ struct Fight
     int64_t targetId;
     int64_t start;
     int64_t end;
-    struct Damage m_melee;
-    struct Damage m_backstab;
-    struct Damage m_crit;
-    struct Damage m_crip;
-    struct Damage m_holyBlade;
-    struct Damage m_magic;
+    struct MeleeDamage m_melee;
+    struct MagicDamage m_magic;
+    struct Array m_byVerb;
+    struct MeleeDamage* (*getMeleeDamage)(struct Fight* this, struct SimpleString* verb);
     int64_t (*seconds)(struct Fight* this);
-    void (*dtor)(struct Fight* this);
+    int64_t (*swings)(struct Fight* this);
+    int64_t (*misses)(struct Fight* this);
+    int64_t (*strikes)(struct Fight* this);
+    int64_t (*avoided)(struct Fight* this);
+    int64_t (*hits)(struct Fight* this);
+    int64_t (*damage)(struct Fight* this);
+    void (*dtor)(void* this);
 };
 
 struct Death
@@ -67,6 +95,7 @@ struct Battle
     int64_t (*seconds)(struct Battle* this);
     void (*report)(struct Battle* this);
     void (*melee)(struct Battle* this, int64_t now, struct Action* action);
+    void (*miss)(struct Battle* this, int64_t now, struct Action* action);
     void (*crit)(struct Battle* this, int64_t now, struct Action* action);
     void (*crip)(struct Battle* this, int64_t now, struct Action* action);
     void (*holyBlade)(struct Battle* this, int64_t now, struct Action* action);

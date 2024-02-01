@@ -26,11 +26,11 @@ int main()
 
     // Make sure the fight matches the action(s) so far
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->m_melee.hits, 1);
-    test_uint_eq(fight->m_melee.damage, 1);
-    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 1);
-    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 1);
-    test_uint_eq(dph(fight->m_melee), 1);
+    test_uint_eq(fight->m_melee.m_hits, 1);
+    test_uint_eq(fight->m_melee.m_damage, 1);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->seconds(fight)), 1);
+    test_uint_eq(ratio(fight->m_melee.m_hits, fight->seconds(fight)), 1);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->m_melee.m_hits), 1);
 
     // Hit them again, inside the same second
     battle->melee(battle, now, &action);
@@ -38,11 +38,11 @@ int main()
 
     // Should be the same fight
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->m_melee.hits, 2);
-    test_uint_eq(fight->m_melee.damage, 2);
-    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 2);
-    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 2);
-    test_uint_eq(dph(fight->m_melee), 1);
+    test_uint_eq(fight->m_melee.m_hits, 2);
+    test_uint_eq(fight->m_melee.m_damage, 2);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->seconds(fight)), 2);
+    test_uint_eq(ratio(fight->m_melee.m_hits, fight->seconds(fight)), 2);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->m_melee.m_hits), 1);
 
     // New fight, Someone Else hits back!
     action.type = MELEE;
@@ -59,11 +59,11 @@ int main()
 
     // Should look like the first fight
     test_uint_eq(fight->seconds(fight), 1);
-    test_uint_eq(fight->m_melee.hits, 1);
-    test_uint_eq(fight->m_melee.damage, 1);
-    test_uint_eq(dps(fight->m_melee, fight->seconds(fight)), 1);
-    test_uint_eq(hps(fight->m_melee, fight->seconds(fight)), 1);
-    test_uint_eq(dph(fight->m_melee), 1);
+    test_uint_eq(fight->m_melee.m_hits, 1);
+    test_uint_eq(fight->m_melee.m_damage, 1);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->seconds(fight)), 1);
+    test_uint_eq(ratio(fight->m_melee.m_hits, fight->seconds(fight)), 1);
+    test_uint_eq(ratio(fight->m_melee.m_damage, fight->m_melee.m_hits), 1);
 
     // TODO:
     // Backstabs

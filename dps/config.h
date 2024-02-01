@@ -12,6 +12,8 @@ struct Config
     bool history;
     bool reportByTarget;
     bool extra;
+    bool misses;
+    bool byVerb;
     int verbosity;
     struct SimpleString me;
     const char* logfile;

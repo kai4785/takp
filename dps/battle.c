@@ -18,12 +18,42 @@ struct Battle* battleInstance()
     return &battle;
 }
 
+struct ByVerb
+{
+    struct String m_verb;
+    struct MeleeDamage m_melee;
+};
+
+void ByVerb_ctor(struct ByVerb *this, struct SimpleString* verb)
+{
+    String_ctorCopyString(&this->m_verb, verb);
+    MeleeDamage_ctor(&this->m_melee);
+}
+
+void ByVerb_dtor(void *_this)
+{
+    struct ByVerb *this = (struct ByVerb *)_this;
+    this->m_verb.dtor(&this->m_verb);
+}
+
 // Member function declarations
+int64_t MeleeDamage_swings(struct MeleeDamage* this);
+int64_t MeleeDamage_misses(struct MeleeDamage* this);
+int64_t MeleeDamage_strikes(struct MeleeDamage* this);
+int64_t MeleeDamage_avoided(struct MeleeDamage* this);
+int64_t MeleeDamage_hits(struct MeleeDamage* this);
+int64_t MeleeDamage_damage(struct MeleeDamage* this);
 // Fight
-void Fight_dtor(struct Fight *this);
+struct MeleeDamage* Fight_getMeleeDamage(struct Fight* this, struct SimpleString* verb);
 int64_t Fight_seconds(struct Fight *this);
+int64_t Fight_swings(struct Fight* this);
+int64_t Fight_misses(struct Fight* this);
+int64_t Fight_strikes(struct Fight* this);
+int64_t Fight_hits(struct Fight* this);
+int64_t Fight_damage(struct Fight* this);
+int64_t Fight_avoided(struct Fight* this);
+void Fight_dtor(void* this);
 // Battle
-void Battle_dtor(struct Battle *this);
 void Battle_reset(struct Battle *this);
 void Battle_start(struct Battle* this, int64_t now);
 void Battle_keepalive(struct Battle* this, int64_t now);
@@ -32,6 +62,7 @@ bool Battle_isOver(struct Battle *this, int64_t now);
 int64_t Battle_seconds(struct Battle *this);
 void Battle_report(struct Battle* this);
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action);
+void Battle_miss(struct Battle* this, int64_t now, struct Action* action);
 void Battle_crit(struct Battle* this, int64_t now, struct Action* action);
 void Battle_crip(struct Battle* this, int64_t now, struct Action* action);
 void Battle_holyBlade(struct Battle* this, int64_t now, struct Action* action);
@@ -39,27 +70,35 @@ void Battle_magic(struct Battle* this, int64_t now, struct Action* action);
 void Battle_heal(struct Battle* this, int64_t now, struct Action* action);
 void Battle_death(struct Battle* this, int64_t now, struct Action* action);
 void Battle_sort(struct Battle* this);
-
-// Helper Functions
-double dps(struct Damage damage, int64_t seconds)
-{
-    return (double)(damage.damage) / (double)(seconds);
-}
-
-double hps(struct Damage damage, int64_t seconds)
-{
-    return (double)(damage.hits) / (double)(seconds);
-}
-
-double dph(struct Damage damage)
-{
-    if(damage.hits)
-        return (double)(damage.damage) / (double)(damage.hits);
-    else
-        return 0;
-}
+void Battle_dtor(struct Battle *this);
 
 // Constructors
+void MeleeDamage_ctor(struct MeleeDamage* this)
+{
+    *this = (struct MeleeDamage){
+        .m_hits = 0,
+        .m_damage = 0,
+        .m_crit_hits = 0,
+        .m_crit_damage = 0,
+        .m_crip_hits = 0,
+        .m_crip_damage = 0,
+        .m_holy_hits = 0,
+        .m_holy_damage = 0,
+        .m_misses = 0,
+        .m_parries = 0,
+        .m_dodges = 0,
+        .m_ripostes = 0,
+        .m_blocks = 0,
+        .m_absorb = 0,
+        .swings = &MeleeDamage_swings,
+        .misses = &MeleeDamage_misses,
+        .strikes = &MeleeDamage_strikes,
+        .avoided = &MeleeDamage_avoided,
+        .hits = &MeleeDamage_hits,
+        .damage = &MeleeDamage_damage
+    };
+}
+
 void Fight_ctor(struct Fight* this)
 {
     *this = (struct Fight){
@@ -67,14 +106,20 @@ void Fight_ctor(struct Fight* this)
         .targetId = 0,
         .start = 0,
         .end = 0,
-        .m_melee = {0},
-        .m_backstab = {0},
-        .m_crit = {0},
-        .m_crip = {0},
         .m_magic = {0},
+        .getMeleeDamage = &Fight_getMeleeDamage,
         .seconds = &Fight_seconds,
+        .swings = &Fight_swings,
+        .misses = &Fight_misses,
+        .strikes = &Fight_strikes,
+        .avoided = &Fight_avoided,
+        .hits = &Fight_hits,
+        .damage = &Fight_damage,
         .dtor = &Fight_dtor
     };
+    Array_ctor(&this->m_byVerb, sizeof(struct ByVerb));
+    this->m_byVerb.datum_dtor = ByVerb_dtor;
+    MeleeDamage_ctor(&this->m_melee);
 }
 
 struct Fight* Fight_new()
@@ -84,11 +129,111 @@ struct Fight* Fight_new()
     return this;
 }
 
+struct MeleeDamage* Fight_getMeleeDamage(struct Fight* this, struct SimpleString *verb)
+{
+    struct Config* config = configInstance();
+    if(config->byVerb)
+    {
+        struct ByVerb* byVerb = NULL;
+        for(size_t i = 0; i < this->m_byVerb.size; i++)
+        {
+            struct ByVerb* _byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, i);
+            if(_byVerb && _byVerb->m_verb.op_equal(&_byVerb->m_verb, verb))
+            {
+                byVerb = _byVerb;
+                break;
+            }
+        }
+        if(!byVerb)
+        {
+            struct ByVerb _byVerb;
+            ByVerb_ctor(&_byVerb, verb);
+            this->m_byVerb.push(&this->m_byVerb, &_byVerb);
+            byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, this->m_byVerb.size - 1);
+        }
+        return &byVerb->m_melee;
+    }
+    else
+    {
+        return &this->m_melee;
+    }
+}
+
 int64_t Fight_seconds(struct Fight* this)
 {
     if(this->end == this->start)
         return 1;
     return this->end - this->start;
+}
+
+int64_t Fight_swings(struct Fight* this)
+{
+    return this->strikes(this) + this->misses(this);
+}
+
+int64_t Fight_misses(struct Fight* this)
+{
+    if(this->m_byVerb.size)
+    {
+        int64_t total = 0;
+        for(size_t i = 0; i < this->m_byVerb.size; i++)
+        {
+            struct ByVerb* byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, i);
+            total += byVerb->m_melee.misses(&byVerb->m_melee);
+        }
+        return total;
+    }
+    return this->m_melee.misses(&this->m_melee);
+}
+
+int64_t Fight_strikes(struct Fight* this)
+{
+    return this->hits(this) + this->avoided(this);
+}
+
+int64_t Fight_hits(struct Fight* this)
+{
+    if(this->m_byVerb.size)
+    {
+        int64_t total = 0;
+        for(size_t i = 0; i < this->m_byVerb.size; i++)
+        {
+            struct ByVerb* byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, i);
+            total += byVerb->m_melee.hits(&byVerb->m_melee);
+        }
+        return total;
+    }
+    return this->m_melee.hits(&this->m_melee);
+}
+
+int64_t Fight_damage(struct Fight* this)
+{
+    if(this->m_byVerb.size > 0)
+    {
+        int64_t total = 0;
+        for(size_t i = 0; i < this->m_byVerb.size; i++)
+        {
+            struct ByVerb* byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, i);
+            total += byVerb->m_melee.damage(&byVerb->m_melee);
+        }
+        return total;
+    }
+    return this->m_melee.damage(&this->m_melee);
+}
+
+int64_t Fight_avoided(struct Fight* this)
+{
+    if(this->m_byVerb.size > 0)
+    {
+        int64_t total = 0;
+        for(size_t i = 0; i < this->m_byVerb.size; i++)
+        {
+            struct ByVerb* byVerb = (struct ByVerb*)this->m_byVerb.at(&this->m_byVerb, i);
+            total += byVerb->m_melee.avoided(&byVerb->m_melee);
+        }
+        return total;
+    }
+    return this->m_melee.avoided(&this->m_melee);
 }
 
 void Battle_String_dtor(void* string)
@@ -115,6 +260,7 @@ void Battle_ctor(struct Battle* this)
         .seconds = &Battle_seconds,
         .report = &Battle_report,
         .melee = &Battle_melee,
+        .miss = &Battle_miss,
         .crit = &Battle_crit,
         .crip = &Battle_crip,
         .holyBlade = &Battle_holyBlade,
@@ -126,6 +272,7 @@ void Battle_ctor(struct Battle* this)
     };
     Array_ctor(&this->m_pc, sizeof(struct String));
     Array_ctor(&this->m_fight, sizeof(struct Fight));
+    this->m_fight.datum_dtor = Fight_dtor;
     Array_ctor(&this->m_death, sizeof(struct Death));
     this->m_pc.datum_dtor = Battle_String_dtor;
 }
@@ -138,9 +285,50 @@ struct Battle* Battle_new()
 }
 
 // Member function implementations
-void Fight_dtor(struct Fight *this)
+int64_t MeleeDamage_swings(struct MeleeDamage* this)
 {
-    (void)this;
+    return this->strikes(this) + this->misses(this);
+}
+
+int64_t MeleeDamage_misses(struct MeleeDamage* this)
+{
+    return this->m_misses;
+}
+
+int64_t MeleeDamage_strikes(struct MeleeDamage* this)
+{
+    return this->hits(this) + this->avoided(this);
+}
+
+int64_t MeleeDamage_avoided(struct MeleeDamage* this)
+{
+    return this->m_parries
+        + this->m_dodges
+        + this->m_ripostes
+        + this->m_blocks
+        + this->m_absorb;
+}
+
+int64_t MeleeDamage_hits(struct MeleeDamage* this)
+{
+    return this->m_hits
+        + this->m_crit_hits
+        + this->m_crip_hits
+        + this->m_holy_hits;
+}
+
+int64_t MeleeDamage_damage(struct MeleeDamage* this)
+{
+    return this->m_damage
+        + this->m_crit_damage
+        + this->m_crip_damage
+        + this->m_holy_damage;
+}
+
+void Fight_dtor(void* _this)
+{
+    struct Fight* this = (struct Fight*)_this;
+    this->m_byVerb.dtor(&this->m_byVerb);
 }
 
 void Battle_dtor(struct Battle *this)
@@ -200,6 +388,65 @@ void Battle_reset(struct Battle* this)
     this->m_death.clear(&this->m_death);
 }
 
+void print_extra_extra(const char* type, int64_t hits, int64_t damage, int64_t fightSeconds)
+{
+    printf("%-35s      *%-24s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n",
+        "",
+        type,
+        "",
+        hits,
+        ratio(hits, fightSeconds),
+        damage,
+        ratio(damage, hits),
+        ratio(damage, fightSeconds)
+    );
+}
+
+void print_extra(const struct SimpleString* type, struct MeleeDamage* melee, int64_t fightSeconds, bool printMisses)
+{
+    printf("%-35s   *%-27.*s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n",
+        "",
+        (int)type->length, type->data,
+        "",
+        melee->m_hits,
+        ratio(melee->m_hits, fightSeconds),
+        melee->m_damage,
+        ratio(melee->m_damage, melee->m_hits),
+        ratio(melee->m_damage, fightSeconds)
+    );
+    if(melee->m_crit_hits > 0)
+        print_extra_extra("critical hits", melee->m_crit_hits, melee->m_crit_damage, fightSeconds);
+    if(melee->m_crip_hits > 0)
+        print_extra_extra("crippling blows", melee->m_crip_hits, melee->m_crip_damage, fightSeconds);
+    if(melee->m_holy_hits > 0)
+        print_extra_extra("holy blade", melee->m_holy_hits, melee->m_holy_damage, fightSeconds);
+
+    if(!printMisses)
+        return;
+
+    int64_t swings = melee->swings(melee);
+    int64_t strikes = melee->strikes(melee);
+    int64_t avoided = melee->avoided(melee);
+    int64_t misses = melee->misses(melee);
+    if(misses || avoided)
+    {
+        printf("    *swings     %5"PRId64"\n", swings);
+        printf("    *misses     %5"PRId64" %5.2f%% \n", misses, percent(misses, swings));
+        printf("    *strikes    %5"PRId64" %5.2f%% \n", strikes, percent(strikes, swings));
+        printf("    *avoided    %5"PRId64" %5.2f%% \n", avoided, percent(avoided, swings));
+        if(melee->m_parries)
+            printf("      *parries  %5"PRId64" %5.2f%% \n", melee->m_parries, percent(melee->m_parries, swings));
+        if(melee->m_dodges)
+            printf("      *dodges   %5"PRId64" %5.2f%% \n", melee->m_dodges, percent(melee->m_dodges, swings));
+        if(melee->m_ripostes)
+            printf("      *ripostes %5"PRId64" %5.2f%% \n", melee->m_ripostes, percent(melee->m_ripostes, swings));
+        if(melee->m_blocks)
+            printf("      *blocks   %5"PRId64" %5.2f%% \n", melee->m_blocks, percent(melee->m_blocks, swings));
+        if(melee->m_absorb)
+            printf("      *absorb   %5"PRId64" %5.2f%% \n", melee->m_absorb, percent(melee->m_absorb, swings));
+    }
+}
+
 void Battle_report(struct Battle* this)
 {
     char datebuf[24] = {0};
@@ -218,11 +465,6 @@ void Battle_report(struct Battle* this)
     #define break_str "--------------------------------------------------------------------------------------------------------"
     #define header_format "%-35s %-30s %4s %4s %5s %6s %6s %6s\n"
     #define melee_format "%-35.*s %-30.*s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
-    #define backstab_format "%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
-    #define crit_format backstab_format
-    #define crip_format backstab_format
-    #define holyBlade_format backstab_format
-    #define magic_format backstab_format
     #define total_format "%-35s %-30s %4"PRId64" %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n"
     #define death_format "%-35.*s %-30.*s %s\n"
     printf(header_format, "(N)PC", "Target", "Sec", "Hits", "h/s", "Damage", "d/h", "d/s");
@@ -230,109 +472,85 @@ void Battle_report(struct Battle* this)
     Battle_sort(this);
     for(int64_t pcId = 0; pcId < this->m_pc.size; pcId++)
     {
-        int linesPrinted = 0;
+        int fightsReported = 0;
         int64_t totalHits = 0;
         int64_t totalDamage = 0;
         for(size_t i = 0; i < this->m_fight.size; i++)
         {
             struct Fight* fight = this->m_fight.at(&this->m_fight, i);
             int64_t id = config->reportByTarget ? fight->targetId : fight->sourceId;
-            bool printSource = (!linesPrinted ||  config->reportByTarget);
-            bool printTarget = (!linesPrinted || !config->reportByTarget);
+            bool printSource = (!fightsReported ||  config->reportByTarget);
+            bool printTarget = (!fightsReported || !config->reportByTarget);
             if(id != pcId)
                 continue;
             // TODO: Handle Ids that are less than 0
             struct String* source = this->m_pc.at(&this->m_pc, fight->sourceId);
             struct String* target = this->m_pc.at(&this->m_pc, fight->targetId);
             int64_t fightSeconds = fight->seconds(fight);
+            int64_t fightHits = fight->hits(fight);
+            int64_t fightDamage = fight->damage(fight);
             printf(melee_format,
                 (int)source->length, printSource ? source->data : "",
                 (int)target->length, printTarget ? target->data : "",
                 fightSeconds,
-                fight->m_melee.hits,
-                hps(fight->m_melee, fightSeconds),
-                fight->m_melee.damage,
-                dph(fight->m_melee),
-                dps(fight->m_melee, fightSeconds)
+                fightHits,
+                ratio(fightHits, fightSeconds),
+                fightDamage,
+                ratio(fightDamage, fightHits),
+                ratio(fightDamage, fightSeconds)
             );
-            totalHits += fight->m_melee.hits;
-            totalDamage += fight->m_melee.damage;
-            linesPrinted++;
+            totalHits += fightHits;
+            totalDamage += fightDamage;
+            fightsReported++;
             if(config->extra)
             {
-                if(fight->m_backstab.hits > 0)
+                printf("%-35s %-30s %4s %4"PRId64" %5.2f\n",
+                    "",
+                    "  *swings",
+                    "",
+                    fight->swings(fight),
+                    ratio(fight->swings(fight), fightSeconds)
+                );
+                if(config->byVerb)
                 {
-                    printf(backstab_format,
-                        "",
-                        "  *backstabs",
-                        "",
-                        fight->m_backstab.hits,
-                        hps(fight->m_backstab, fightSeconds),
-                        fight->m_backstab.damage,
-                        dph(fight->m_backstab),
-                        dps(fight->m_backstab, fightSeconds)
-                    );
-                    linesPrinted++;
+                    for(size_t i = 0; i < fight->m_byVerb.size; i++)
+                    {
+                        struct ByVerb* byVerb = (struct ByVerb*)fight->m_byVerb.at(&fight->m_byVerb, i);
+                        print_extra(byVerb->m_verb.to_SimpleString(&byVerb->m_verb), &byVerb->m_melee, fightSeconds, config->misses);
+                    }
                 }
-                if(fight->m_crit.hits > 0)
+                else
                 {
-                    printf(crit_format,
-                        "",
-                        "  *critical hits",
-                        "",
-                        fight->m_crit.hits,
-                        hps(fight->m_crit, fightSeconds),
-                        fight->m_crit.damage,
-                        dph(fight->m_crit),
-                        dps(fight->m_crit, fightSeconds)
-                    );
-                    linesPrinted++;
-                }
-                if(fight->m_crip.hits > 0)
-                {
-                    printf(crip_format,
-                        "",
-                        "  *crippling blows",
-                        "",
-                        fight->m_crip.hits,
-                        hps(fight->m_crip, fightSeconds),
-                        fight->m_crip.damage,
-                        dph(fight->m_crip),
-                        dps(fight->m_crip, fightSeconds)
-                    );
-                    linesPrinted++;
-                }
-                if(fight->m_holyBlade.hits > 0)
-                {
-                    printf(holyBlade_format,
-                        "",
-                        "  *holy blade",
-                        "",
-                        fight->m_holyBlade.hits,
-                        hps(fight->m_holyBlade, fightSeconds),
-                        fight->m_holyBlade.damage,
-                        dph(fight->m_holyBlade),
-                        dps(fight->m_holyBlade, fightSeconds)
-                    );
-                    linesPrinted++;
+                    struct SimpleString _melee = SIMPLE_STRING("melee");
+                    print_extra(&_melee, &fight->m_melee, fightSeconds, config->misses);
                 }
                 if(fight->m_magic.hits > 0)
                 {
-                    printf(magic_format,
+                    printf("%-35s %-30s %4s %4"PRId64" %5.2f %6"PRId64" %6.2f %7.2f\n",
                         "",
                         "  *spell/ds",
                         "",
                         fight->m_magic.hits,
-                        hps(fight->m_magic, fightSeconds),
+                        ratio(fight->m_magic.hits, fightSeconds),
                         fight->m_magic.damage,
-                        dph(fight->m_magic),
-                        dps(fight->m_magic, fightSeconds)
+                        ratio(fight->m_magic.damage, fight->m_magic.hits),
+                        ratio(fight->m_magic.damage, fightSeconds)
                     );
-                    linesPrinted++;
+                }
+            }
+            else
+            {
+                if(config->byVerb)
+                {
+                    for(size_t i = 0; i < fight->m_byVerb.size; i++)
+                    {
+                        struct ByVerb* byVerb = (struct ByVerb*)fight->m_byVerb.at(&fight->m_byVerb, i);
+                        print_extra(byVerb->m_verb.to_SimpleString(&byVerb->m_verb), &byVerb->m_melee, fightSeconds, config->misses);
+                    }
                 }
             }
         }
-        if(linesPrinted > 0)
+        if(fightsReported > 0)
         {
             printf(total_format,
                 "",
@@ -444,6 +662,7 @@ struct Fight* Battle_getFightIndex(struct Battle* this, int64_t now, int64_t sou
 void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
 {
     this->start(this, now);
+    struct Config* config = configInstance();
     int64_t sourceId = Battle_getPCIndex(this, &action->source);
     int64_t targetId = Battle_getPCIndex(this, &action->target);
     // TODO: Handle finishing blows separately
@@ -453,35 +672,77 @@ void Battle_melee(struct Battle* this, int64_t now, struct Action* action)
         this->m_lastFinishingBlow = targetId;
         return;
     }
-
     struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
-    fight->m_melee.hits++;
-    fight->m_melee.damage += action->damage;
     fight->end = now;
-    if(action->verb.cmp(&action->verb, "backstab", 8))
+
+    struct MeleeDamage *melee = fight->getMeleeDamage(fight, action->verb.to_SimpleString(&action->verb));
+
+    if(config->extra)
     {
-        fight->m_backstab.hits++;
-        fight->m_backstab.damage += action->damage;
+        if(this->m_lastCrit == action->damage)
+        {
+            melee->m_crit_hits++;
+            melee->m_crit_damage += action->damage;
+            this->m_lastCrit = 0;
+        }
+        else if(this->m_lastCrip == action->damage)
+        {
+            melee->m_crip_hits++;
+            melee->m_crip_damage += action->damage;
+            this->m_lastCrip = 0;
+        }
+        else if(this->m_lastHolyBlade == action->damage)
+        {
+            melee->m_holy_hits++;
+            melee->m_holy_damage += action->damage;
+            this->m_lastHolyBlade = 0;
+        }
+        else
+        {
+            melee->m_hits++;
+            melee->m_damage += action->damage;
+        }
     }
-    else if(this->m_lastCrit == action->damage)
+    else
     {
-        fight->m_crit.hits++;
-        fight->m_crit.damage += action->damage;
-        this->m_lastCrit = 0;
-    }
-    else if(this->m_lastCrip == action->damage)
-    {
-        fight->m_crip.hits++;
-        fight->m_crip.damage += action->damage;
-        this->m_lastCrip = 0;
-    }
-    else if(this->m_lastHolyBlade == action->damage)
-    {
-        fight->m_holyBlade.hits++;
-        fight->m_holyBlade.damage += action->damage;
-        this->m_lastHolyBlade = 0;
+        melee->m_hits++;
+        melee->m_damage += action->damage;
     }
 
+    Battle_keepalive(this, now);
+}
+
+void Battle_miss(struct Battle* this, int64_t now, struct Action* action)
+{
+    this->start(this, now);
+    int64_t sourceId = Battle_getPCIndex(this, &action->source);
+    int64_t targetId = Battle_getPCIndex(this, &action->target);
+    struct Fight* fight = Battle_getFightIndex(this, now, sourceId, targetId);
+    struct MeleeDamage *melee = fight->getMeleeDamage(fight, action->verb.to_SimpleString(&action->verb));
+
+    switch(action->type)
+    {
+        case PARRY:
+            melee->m_parries++;
+            break;
+        case DODGE:
+            melee->m_dodges++;
+            break;
+        case RIPOSTE:
+            melee->m_ripostes++;
+            break;
+        case BLOCK:
+            melee->m_blocks++;
+            break;
+        case ABSORB:
+            melee->m_absorb++;
+            break;
+        case MISS:
+        default:
+            melee->m_misses++;
+            break;
+    }
+    fight->end = now;
     Battle_keepalive(this, now);
 }
 
@@ -550,7 +811,7 @@ void Battle_sort(struct Battle* this)
         {
             struct Fight* left = this->m_fight.at(&this->m_fight, j);
             struct Fight* right = this->m_fight.at(&this->m_fight, j+1);
-            if (dps(left->m_melee, left->seconds(left)) < dps(right->m_melee, right->seconds(right)))
+            if (ratio(left->m_melee.damage(&left->m_melee), left->seconds(left)) < ratio(right->m_melee.damage(&right->m_melee), right->seconds(right)))
             {
                 this->m_fight.swap(&this->m_fight, j, j+1);
             }

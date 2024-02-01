@@ -10,6 +10,8 @@ struct Config* configInstance()
         config.history = false;
         config.reportByTarget = false;
         config.extra = false;
+        config.misses = false;
+        config.byVerb = false;
         config.me = (struct SimpleString)SIMPLE_STRING("You");
         config.logfile = NULL;
         config.since = -1;

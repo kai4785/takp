@@ -89,7 +89,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source = CONST_STRING("Spell/DS(Total)");
+    action.source = CONST_STRING("You");
     action.target = CONST_STRING("a blizzard hunter");
     action.verb = CONST_STRING("non-melee");
     action.damage = 8;
@@ -99,13 +99,13 @@ int testActions()
     action.type = MELEE;
     action.source = CONST_STRING("Foo`s warder");
     action.target = CONST_STRING("a giant lizard");
-    action.verb = CONST_STRING("slashes");
+    action.verb = CONST_STRING("slash");
     action.damage = 33;
     action.message = "Foo`s warder slashes a giant lizard for 33 points of damage.";
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source = CONST_STRING("AoE Damage");
+    action.source = CONST_STRING("Non-melee");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 300;
@@ -113,7 +113,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source = CONST_STRING("AoE Damage");
+    action.source = CONST_STRING("Non-melee");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -121,7 +121,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source = CONST_STRING("AoE Damage");
+    action.source = CONST_STRING("Non-melee");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 130;
@@ -129,7 +129,7 @@ int testActions()
     errors += validateAction(action);
 
     action.type = MAGIC;
-    action.source = CONST_STRING("AoE Damage");
+    action.source = CONST_STRING("Non-melee");
     action.target = CONST_STRING("You");
     action.verb = CONST_STRING("have taken");
     action.damage = 1;
@@ -174,6 +174,103 @@ int testActions()
     // Crippling blows
     // Finishing blows
     // Critical blasts
+
+    // You try to <verb> <target>, but miss!
+    action.type = MISS;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but miss!";
+    errors += validateAction(action);
+    // You try to <verb> <target>, but <target> parries!
+    action.type = PARRY;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but Player1 parries!";
+    errors += validateAction(action);
+    // You try to <verb> <target>, but <target> dodges!
+    action.type = DODGE;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but Player1 dodges!";
+    errors += validateAction(action);
+    // You try to <verb> <target>, but <target> ripostes!
+    action.type = RIPOSTE;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but Player1 ripostes!";
+    errors += validateAction(action);
+    // You try to <verb> <target>, but <target> blocks!
+    action.type = BLOCK;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but Player1 blocks!";
+    errors += validateAction(action);
+    // You try to <verb> <target>, but <target>'s magical skin absorbs the blow!
+    action.type = ABSORB;
+    action.source = CONST_STRING("You");
+    action.target = CONST_STRING("Player1");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "You try to slash Player1, but Player1's magical skin absorbs the blow!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but misses!
+    action.type = MISS;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but misses!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but YOU parry!
+    action.type = PARRY;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but YOU parry!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but YOU dodge!
+    action.type = DODGE;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but YOU dodge!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but YOU riposte!
+    action.type = RIPOSTE;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but YOU riposte!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but YOU block!
+    action.type = BLOCK;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but YOU block!";
+    errors += validateAction(action);
+    // <Target> tries to <verb> YOU, but YOUR magical skin absorbs the blow!
+    action.type = ABSORB;
+    action.source = CONST_STRING("Player1");
+    action.target = CONST_STRING("YOU");
+    action.verb = CONST_STRING("slash");
+    action.damage = 0;
+    action.message = "Player1 tries to slash YOU, but YOUR magical skin absorbs the blow!";
+    errors += validateAction(action);
 
     action.dtor(&action);
     return errors;

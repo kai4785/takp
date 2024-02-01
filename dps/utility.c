@@ -144,8 +144,8 @@ bool String_endsWith(struct String* this, const struct SimpleString* that)
 size_t String_find(struct String* this, const struct SimpleString* that, struct SimpleString* found)
 {
     if(this->length < that->length)
-        return 0;
-    for(size_t i = 0; i < this->length - that->length; i++)
+        return SIZE_MAX;
+    for(size_t i = 0; i < this->length - that->length + 1; i++)
     {
         if(this->data[i] == that->data[0] && String_ncmp(this->data + i, that->data, that->length))
         {
@@ -154,7 +154,7 @@ size_t String_find(struct String* this, const struct SimpleString* that, struct 
             return i;
         }
     }
-    return 0;
+    return SIZE_MAX;
 }
 
 bool String_op_equal(struct String* this, const struct SimpleString* that)

@@ -38,11 +38,90 @@ enum {
     State2,
     State3,
 };
+
+struct Verb ActionVerbs[15] = {
+    {
+        {" backstab " , 10},
+        {" backstabs ", 11},
+        Backstab
+    },
+    {
+        {" bash "     ,  6},
+        {" bashes "   ,  8},
+        Bash
+    },
+    {
+        {" bite "    ,  7},
+        {" bites "    ,  7},
+        Bite
+    },
+    {
+        {" claw "     ,  6},
+        {" claws "    ,  7},
+        Claw
+    },
+    {
+        {" crush "    ,  7},
+        {" crushes "  ,  9},
+        Crush
+    },
+    {
+        {" gore "     ,  6},
+        {" gores "    ,  7},
+        Gore
+    },
+    {
+        {" hit "      ,  5},
+        {" hits "     ,  6},
+        Hit
+    },
+    {
+        {" kick "     ,  6},
+        {" kicks "    ,  7},
+        Kick
+    },
+    {
+        {" maul "     ,  6},
+        {" mauls "    ,  7},
+        Maul
+    },
+    {
+        {" pierce "   ,  8},
+        {" pierces "  ,  9},
+        Pierce
+    },
+    {
+        {" punch "    ,  7},
+        {" punches "  ,  9},
+        Punch
+    },
+    {
+        {" rend "     ,  6},
+        {" rends "    ,  7},
+        Rend
+    },
+    {
+        {" slash "    ,  7},
+        {" slashes "  ,  9},
+        Slash
+    },
+    {
+        {" slice "    ,  7},
+        {" slices "   ,  8},
+        Slice
+    },
+    {
+        {" smash "    ,  7},
+        {" smashes "  ,  9},
+        Smash
+    }
+};
+
 void parseDamage(struct Action* this, struct String message)
 {
     struct String here;
     String_ctor(&here);
-    struct SimpleString aeVerb = { .data = " have taken ", .length = 12 };
+    struct SimpleString aeVerb = SIMPLE_STRING(" have taken ");
     // First things first, find the AE damage, cause sometimes it says "hit". It's really easy to find.
     for(size_t i = message.length - 1; i > aeVerb.length + 1; i--)
     {
@@ -61,7 +140,7 @@ void parseDamage(struct Action* this, struct String message)
                 String_ctorHold(&damage, message.data + i, message.length - i);
                 // This is a special AE type message; we just parse it and return, or break and continue;
                 this->type = MAGIC;
-                this->source.hold(&this->source, "AoE Damage", 10);
+                this->source.hold(&this->source, "Non-melee", 9);
                 struct Config* config = configInstance();
                 this->target.hold(&this->target, config->me.data, config->me.length);
                 this->verb.hold(&this->verb, aeVerb.data + 1, aeVerb.length - 2); // Trim leading/trailing slash
@@ -72,41 +151,9 @@ void parseDamage(struct Action* this, struct String message)
             break;
         }
     }
-    // TODO: Measure this, does it take a time to build this on the stack?
-    struct SimpleString verbs[] = {
-        {" backstab " , 10},
-        {" backstabs ", 11},
-        {" bash "     ,  6},
-        {" bashes "   ,  8},
-        {" bites "    ,  7},
-        {" claw "     ,  6},
-        {" claws "    ,  7},
-        {" crush "    ,  7},
-        {" crushes "  ,  9},
-        {" gore "     ,  6},
-        {" gores "    ,  7},
-        {" hit "      ,  5},
-        {" hits "     ,  6},
-        {" kick "     ,  6},
-        {" kicks "    ,  7},
-        {" maul "     ,  6},
-        {" mauls "    ,  7},
-        {" pierce "   ,  8},
-        {" pierces "  ,  9},
-        {" punch "    ,  7},
-        {" punches "  ,  9},
-        {" rend "     ,  6},
-        {" rends "    ,  7},
-        {" slash "    ,  7},
-        {" slashes "  ,  9},
-        {" slice "    ,  7},
-        {" slices "   ,  8},
-        {" smash "    ,  7},
-        {" smashes "  ,  9},
-    };
-    struct SimpleString nonMeleeVerb1 = { .data = " was hit by ", .length = 12};
-    struct SimpleString nonMeleeVerb2 = { .data = " were hit by ", .length = 13};
-    struct SimpleString healedVerb = { .data = " have been healed ", .length = 18};
+    struct SimpleString nonMeleeVerb1 = SIMPLE_STRING(" was hit by ");
+    struct SimpleString nonMeleeVerb2 = SIMPLE_STRING(" were hit by ");
+    struct SimpleString healedVerb = SIMPLE_STRING(" have been healed ");
     // 0 initial
     // 1 found melee verb, looking for target length
     // 2 found non-melee verb, looking for damage value
@@ -128,7 +175,8 @@ void parseDamage(struct Action* this, struct String message)
                 {
                     size_t length = (here.data[2] == 'a') ? nonMeleeVerb1.length : nonMeleeVerb2.length;
                     this->type = MAGIC;
-                    this->source = CONST_STRING("Spell/DS(Total)");
+                    //this->source = CONST_STRING("Spell/DS");
+                    this->source = CONST_STRING("You");
                     this->target.data = message.data;
                     this->target.length = i;
                     this->verb.data = message.data + i + length;
@@ -149,20 +197,26 @@ void parseDamage(struct Action* this, struct String message)
                 }
                 else
                 {
-                    for(size_t j = 0; j < ARRAY_SIZE(verbs); j++)
+                    for(size_t j = 0; j < ARRAY_SIZE(ActionVerbs); j++)
                     {
-                        if(here.startsWith(&here, &verbs[j]))
+                        struct SimpleString found = {0};
+                        if(here.startsWith(&here, &ActionVerbs[j].singular))
+                            found = ActionVerbs[j].singular;
+                        else if(here.startsWith(&here, &ActionVerbs[j].plural))
+                            found = ActionVerbs[j].plural;
+
+                        if(found.length)
                         {
                             // We found it!
                             this->type = MELEE;
                             this->source.data = message.data;
                             this->source.length = i;
-                            this->verb.data = message.data + i + 1; // Skip the space
-                            this->verb.length = verbs[j].length - 2; // No spaces
-                            this->target.data = this->verb.data + this->verb.length + 1; // Skip the space
+                            this->verb.data = ActionVerbs[j].singular.data + 1; // Skip the space
+                            this->verb.length = ActionVerbs[j].singular.length - 2; // No spaces
+                            this->target.data = message.data + i + 1 + found.length - 1; // Skip the spaces
                             // Still need target length;
                             state = State1;
-                            i += verbs[j].length;
+                            i += found.length;
                             break;
                         }
                     }
@@ -171,7 +225,7 @@ void parseDamage(struct Action* this, struct String message)
             else if(state == State1 || state == State2)
             {
                 // Now we're looking for the end of target, by searching for "for"
-                struct SimpleString _for_ = { .data = " for ", .length = 5};
+                struct SimpleString _for_ = SIMPLE_STRING(" for ");
                 if(here.startsWith(&here, &_for_))
                 {
                     if(state == State1)
@@ -206,15 +260,19 @@ void parseDamage(struct Action* this, struct String message)
  *    ^([A-Za-z `]+) have slain ([A-Za-z `]+)!
  *    ^([A-Za-z `]+) (has|have) been slain by ([A-Za-z `]+)!
  *    ^([A-Za-z `]+) died\.
+ * Stun
+ *    You are stunned!
+ *    You are unstunned.
  */
 
 void Action_parse(struct Action* this, struct String message)
 {
     if(message.data[message.length - 1] == '.')
     {
-        struct SimpleString pointsOfDamage = { .data = " points of damage.", .length = 18 };
-        struct SimpleString pointOfDamage =  { .data = " point of damage.",  .length = 17 };
-        struct SimpleString died = { .data = " died.", .length = 6 };
+        struct SimpleString pointsOfDamage = SIMPLE_STRING(" points of damage.");
+        struct SimpleString pointOfDamage =  SIMPLE_STRING(" point of damage.");
+        struct SimpleString died = SIMPLE_STRING(" died.");
+        struct SimpleString unstunned = SIMPLE_STRING("unstunned.");
         if(message.endsWith(&message, &pointsOfDamage))
         {
             message.length -= pointsOfDamage.length;
@@ -233,22 +291,26 @@ void Action_parse(struct Action* this, struct String message)
             this->verb.hold(&this->verb,
                 message.data + this->target.length + 1, died.length - 2);
         }
+        else if(message.endsWith(&message, &unstunned))
+        {
+            // code
+        }
     }
     else if(message.data[message.length - 1] == ')')
     {
-        struct SimpleString critical_hit   = { .data = " Scores a critical hit!(", .length = 24 };
-        struct SimpleString crippling_blow = { .data = " lands a Crippling Blow!(", .length = 25 };
-        struct SimpleString holy_blade = { .data = "'s holy blade cleanses his target!(", .length = 35 };
+        struct SimpleString critical_hit   = SIMPLE_STRING(" Scores a critical hit!(");
+        struct SimpleString crippling_blow = SIMPLE_STRING(" lands a Crippling Blow!(");
+        struct SimpleString holy_blade = SIMPLE_STRING("'s holy blade cleanses his target!(");
         struct SimpleString found = {0};
-        if(message.find(&message, &critical_hit, &found))
+        if(message.find(&message, &critical_hit, &found) != SIZE_MAX)
         {
             this->type = CRIT;
         }
-        else if(message.find(&message, &crippling_blow, &found))
+        else if(message.find(&message, &crippling_blow, &found) != SIZE_MAX)
         {
             this->type = CRIP;
         }
-        else if(message.find(&message, &holy_blade, &found))
+        else if(message.find(&message, &holy_blade, &found) != SIZE_MAX)
         {
             this->type = HOLYBLADE;
         }
@@ -264,11 +326,99 @@ void Action_parse(struct Action* this, struct String message)
     }
     else if(message.data[message.length - 1] == '!')
     {
-        struct SimpleString have_slain = { .data = " have slain ", .length = 12 };
-        struct SimpleString has_been_slain_by = { .data = " has been slain by ", .length = 19 };
-        struct SimpleString have_been_slain_by = { .data = " have been slain by ", .length = 20 };
+        // You try to <verb> <target>, but miss!
+        // You try to <verb> <target>, but <target> parries!
+        // You try to <verb> <target>, but <target> dodges!
+        // You try to <verb> <target>, but <target> ripostes!
+        // You try to <verb> <target>, but <target> blocks!
+        // You try to <verb> <target>, but <target>'s magical skin absorbs the blow!
+        // <Target> tries to <verb> YOU, but misses!
+        // <Target> tries to <verb> YOU, but YOU parry!
+        // <Target> tries to <verb> YOU, but YOU dodge!
+        // <Target> tries to <verb> YOU, but YOU riposte!
+        // <Target> tries to <verb> YOU, but YOU block!
+        // <Target> tries to <verb> YOU, but YOUR magical skin absorbs the blow!
+        struct SimpleString try_to = SIMPLE_STRING(" try to ");
+        struct SimpleString tries_to = SIMPLE_STRING(" tries to ");
+
+        // You have slain <target>!
+        // <target> has been slain by <source>
+        // You have been slain by <target>
+        struct SimpleString have_slain = SIMPLE_STRING(" have slain ");
+        struct SimpleString has_been_slain_by = SIMPLE_STRING(" has been slain by ");
+        struct SimpleString have_been_slain_by = SIMPLE_STRING(" have been slain by ");
+
+        // You are stunned!
+        struct SimpleString stunned = SIMPLE_STRING("stunned!");
+
         struct SimpleString found = {0};
-        if(message.find(&message, &have_slain, &found))
+        size_t pos = 0;
+        if((pos = message.find(&message, &try_to, &found)) != SIZE_MAX ||
+           (pos = message.find(&message, &tries_to, &found)) != SIZE_MAX)
+        {
+            struct SimpleString space = SIMPLE_STRING(" ");
+            struct SimpleString _but = SIMPLE_STRING(", but");
+
+            struct SimpleString miss = SIMPLE_STRING(" miss!");
+            struct SimpleString parries = SIMPLE_STRING(" parries!");
+            struct SimpleString dodges = SIMPLE_STRING(" dodges!");
+            struct SimpleString ripostes = SIMPLE_STRING(" ripostes!");
+            struct SimpleString blocks = SIMPLE_STRING(" blocks!");
+
+            struct SimpleString misses = SIMPLE_STRING(" misses!");
+            struct SimpleString parry = SIMPLE_STRING(" parry!");
+            struct SimpleString dodge = SIMPLE_STRING(" dodge!");
+            struct SimpleString riposte = SIMPLE_STRING(" riposte!");
+            struct SimpleString block = SIMPLE_STRING(" block!");
+            struct SimpleString absorb = SIMPLE_STRING(" magical skin absorbs the blow!");
+
+            this->source.hold(&this->source, message.data, pos);
+
+            this->verb.hold(&this->verb,
+                found.data + found.length,
+                message.length - pos - found.length);
+            pos = this->verb.find(&this->verb, &space, &found);
+            this->verb.length = pos;
+
+            // Target starts after verb and the following space
+            // Target ends where _but begins
+            pos = message.find(&message, &_but, &found);
+            this->target.hold(&this->target,
+                this->verb.data + this->verb.length + 1,
+                (size_t)(found.data - this->verb.data) - this->verb.length - 1);
+
+            if(message.endsWith(&message, &miss) ||
+               message.endsWith(&message, &misses))
+            {
+                this->type = MISS;
+            }
+            else if(message.endsWith(&message, &parries) ||
+                    message.endsWith(&message, &parry))
+            {
+                this->type = PARRY;
+            }
+            else if(message.endsWith(&message, &dodges) ||
+                    message.endsWith(&message, &dodge))
+            {
+                this->type = DODGE;
+            }
+            else if(message.endsWith(&message, &ripostes) ||
+                    message.endsWith(&message, &riposte))
+            {
+                this->type = RIPOSTE;
+            }
+            else if(message.endsWith(&message, &blocks) ||
+                    message.endsWith(&message, &block))
+            {
+                this->type = BLOCK;
+            }
+            else if(message.endsWith(&message, &absorb))
+            {
+                this->type = ABSORB;
+            }
+
+        }
+        else if(message.find(&message, &have_slain, &found) != SIZE_MAX)
         {
             this->type = DEATH;
             this->source.hold(&this->source,
@@ -279,8 +429,8 @@ void Action_parse(struct Action* this, struct String message)
             this->verb.hold(&this->verb, found.data + 1, found.length - 2);
         }
         else if(
-            (message.find(&message, &has_been_slain_by, &found)) ||
-            (message.find(&message, &have_been_slain_by, &found)))
+            (message.find(&message, &has_been_slain_by, &found) != SIZE_MAX) ||
+            (message.find(&message, &have_been_slain_by, &found) != SIZE_MAX))
         {
             this->type = DEATH;
             this->target.hold(&this->target,
@@ -289,6 +439,9 @@ void Action_parse(struct Action* this, struct String message)
                 message.data + this->target.length + found.length,
                 message.length - 1 - this->target.length - found.length);
             this->verb.hold(&this->verb, found.data + 1, found.length - 2);
+        }
+        else if(message.endsWith(&message, &stunned))
+        {
         }
     }
 }

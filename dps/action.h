@@ -11,6 +11,12 @@ enum ActionType
     UNKNOWN,
     CHAT,
     MELEE,
+    MISS,
+    PARRY,
+    DODGE,
+    RIPOSTE,
+    BLOCK,
+    ABSORB,
     MAGIC,
     HEAL,
     CRIT,
@@ -36,5 +42,33 @@ struct Action
 };
 
 struct Action parseAction(struct String message);
+
+enum VerbType
+{
+    Backstab,
+    Bash,
+    Bite,
+    Claw,
+    Crush,
+    Gore,
+    Hit,
+    Kick,
+    Maul,
+    Pierce,
+    Punch,
+    Rend,
+    Slash,
+    Slice,
+    Smash
+};
+
+struct Verb
+{
+    struct SimpleString singular;
+    struct SimpleString plural;
+    enum VerbType type;
+};
+
+extern struct Verb ActionVerbs[15];
 
 #endif // ACTION_H

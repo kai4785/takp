@@ -44,3 +44,8 @@
 [Tue Mar 16 06:00:00 1999] Player1 has been slain by Player2!
 [Tue Mar 16 06:00:00 1999] You have been slain by Player2!
 [Tue Mar 16 06:00:00 1999] Player1 died.
+
+[Tue Mar 16 07:00:00 1999] You hit Someone Else for 1 point of damage.
+[Tue Mar 16 07:00:00 1999] You try to hit Someone Else, but miss!
+[Tue Mar 16 07:00:00 1999] Someone Else tries to hit YOU, but misses!
+[Tue Mar 16 07:00:00 1999] Someone Else hits You for 1 point of damage.

@@ -83,4 +83,5 @@ void tail(const char* filename, tailfn callback)
         pos += last;
     }
     close(fd);
+    cacheFileName.dtor(&cacheFileName);
 }
