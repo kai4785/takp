@@ -2,7 +2,7 @@ language: c
 matrix:
   include:
   - os: linux
-    dist: xenial
+    dist: focal
   - os: osx
   - os: windows
 script:
@@ -11,7 +11,7 @@ deploy:
   provider: releases
   skip_cleanup: true
   api_key:
-    secure: 37cajkewwhaG9qbJhpzBXhOhHumeI3Xmgsw6qUeQOSPrSm4HKP7iK1OlsE1AGLRvP+J1K9yuuG02wjJeqrPpbO6BWNu3JVjEdjzglby3+Y29D0siQ5Sv4Eff6uTY+YExc8AGtnh2szCewZffnrS1CUH1ytL3En9uxJvbV5vY1Qz6OYzeYbEewqi5V2eZmgVsDw4+C1jDbHsV9nQ28L1G8YII6j+vDyMThWSbVEepppa4tEel+O6DJGgxy2BI2Dqpfb2BbZwzykk+l6P66E2C/xNIVklHmPLsz1X+DxAjh2zqnY+xDTipSV4hLksU3Dl2MztgHApEN6Vew2X9czcn8xWvWQ4FpJDboG6jM0hGAe4h0Z7pOhddcmXzgUzFoMwP+C1VNeA6V9yA+4Gk8b9kAHYd7YDIJLnxykHu7HUF12tMwAzv7WH9kSEAvrfgynTKmUSpNUFsC/I0vZeRNtpxqqX+PYjr8E0Y0MgjvpGBUimzLPQQ+5yqzj6ClqaiM2jIKR3lDr7WM71hbMskIU8Yj95r51Hn2ls4TXQbW+JUMoIVkt0Bu6pS6y5T9ZUPJMRtLUshx0PPThwEnDovfr/+tTMhw3tCHD/m6+lEM+sp2qTAwxAQIeNcGk6gQJznkjhiaC7NvZwRLoBIQzLG+o1S5DV/BHXuzws1choeGaYB/zQ=
+    secure: "o902G6auBeNntyCtTuS4iIF4G+6vSOTh1DMo8BUe+C2JFp9gpu/divI/mQP5ujPIFakO0lMM52FhBoabqA76jiiZlcj5zuU6GytyGN9X2CPU3qycyU9K9XMpBY/kg6H74rD4jo4pXifodwO340gU9eQZcWn2cR3HTjlhC7B+e8Hv9YZZu7S3ahPZuPVdU0727JlEx6dhphVsQGw2g8c2TbNMBWcTIJImgbnug3pQXtkWUvHjnRTMVKNHiDw1eVlLCHLnZesxVWmIx3MeFp/5yrBuhMEx1kaFEgA1NY4qtT6P5hBLRh2WYbBEyqseeT3CekaRchB6Rz1cfvI/XRLMwCL/YSK0eCgwmuFCrjJ9fZS8d8rEYtat5EihbaGflAWFcudXNtWOE/nmctLW/adqALqStoAy6AIZU8yz3ltmv4Y0nsOIKuTim7Ayqm9QRKz9hmAdIYx3XV9y8v63tli7GtwFchYmkF7Xy5inf7tbX3RePke2YNKo4MP1v1TN5hzGZtSYcwdBrKBmEpIUU9d86XGzZx4O+8KE2pOVdsc4Ujp8RAbulKjHPM377dqayfOW4sYY3A4H+Y1gqHq5uMJQEK3RLeyTsN//GTiQv7mB6BYEurACsFSMo9EdO5xYZ6/oHbguZEdayB7Zfj+ac+CjeMVy9RqANGvAvZxBYgBiKKQ="
   file_glob: true
   file: dps/build/*.zip
   on:
