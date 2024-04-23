@@ -251,7 +251,8 @@ install()
         fi
 
         if [ ! -e "${wine_base}" ]; then
-            tar -C "${takp_prefix}" -xf ${eggroll_file} wineversion/
+            mkdir -p "${takp_prefix}"/wineversion
+            tar -C "${takp_prefix}"/wineversion -xf ${eggroll_file}
         fi
     fi
 
