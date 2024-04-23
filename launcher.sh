@@ -58,36 +58,33 @@ gdown40()
 {
     fileid="$1"
     filename="$2"
-    cookie="/tmp/takp-google-cookie"
-    tmphtml=/tmp/takp-google-tmphtml
-    curl -c $cookie -L "https://drive.google.com/uc?export=download&id=${fileid}" -o $tmphtml
-    confirm=$(cat $tmphtml | awk 'match($0, "confirm=([^&]+)&", m) {print m[1]}')
-    curl -b $cookie -L "https://drive.google.com/uc?export=download&id=${fileid}&confirm=${confirm}" -o $filename
+    curl -L "https://drive.usercontent.google.com/download?id=${fileid}&confirm=xxx" -o $filename
 }
 
 # Old-trusty 2.2-staging
 takp_prefix="$HOME/.takp"
 
+# The following 3 options are all viable.
+# PlayOnLinux is likely to be the most compatible by virtue of having a native wine d3d implementation that works, but is software rendered.
+# System Wine can save some space (~1GiB) if you're already using it.
+# GloriousEggroll (GE) is likely to perform the best, as it is a wine version that tracks closely with steam's Proton version of WINE.
+
 # Use PlayOnLinux's builds
+# Based on https://wiki.takp.info/index.php/Getting_Started_on_Linux
 #wine_flavor="pol"
 #wine_version="2.2-staging"
-
-# Use GloriousEggroll's custom proton build
-# https://github.com/GloriousEggroll/wine-ge-custom/releases
-wine_flavor="eggroll"
-wine_version="lutris-GE-Proton8-8-x86_64"
-#wine_version="lutris-GE-Proton8-22-x86_64"
-
-# Use Steam's Proton
-#wine_flavor="steam"
-#wine_version=""
 
 # Wine 6.0 + dgVoodoo + dxvk is working!
 #wine_flavor="system"
 #wine_version="$(wine --version | sed -r 's/wine-([0-9]).*/\1/')"
 
+# Use GloriousEggroll's custom proton build
+# https://github.com/GloriousEggroll/wine-ge-custom/releases
+eggroll_version="8-8"
+wine_flavor="eggroll"
+wine_version="lutris-GE-Proton${eggroll_version}-x86_64"
+
 # Always needed
-#winetricks_verbs="dinput8 dxvk"
 winetricks_verbs="dinput8"
 
 opts=(takp_prefix wine_flavor wine_version winetricks_verbs wine_base wine_prefix)
@@ -203,6 +200,7 @@ install_dgVoodoo()
 
 install_dxvk()
 {
+    # TODO: libvulkan 1.2 does not support dxvk 2.0+.
     ver="1.10.3"
     #ver="2.0"
     tarname="dxvk-${ver}.tar.gz"
@@ -230,20 +228,7 @@ install()
         curl -L "${winetricks_url}" -o "${winetricks_bin}"
         chmod +x "${winetricks_bin}"
     fi
-    if [ "${wine_flavor}" = "steam" ]; then
-        # CentOS 7
-        steam_apps_dir="$HOME/.local/share/Steam/steamapps"
-        # Ubuntu 18.04
-        steam_apps_dir="$HOME/.steam/steam/steamapps"
-        steam_proton_dir="${steam_apps_dir}/common/Proton 6.3/dist"
-        steam_wine_prefix="${steam_proton_dir}/share/default_pfx"
-
-        if [ ! -e "${wine_base}" ]; then
-            mkdir -p "${wine_base}" "${wine_prefix}"
-            rsync --exclude=default_pfx -av "${steam_proton_dir}"/ "${wine_base}"/
-            rsync -av "${steam_wine_prefix}"/ "${wine_prefix}"/
-        fi
-    elif [ "${wine_flavor}" = "system" ]; then
+    if [ "${wine_flavor}" = "system" ]; then
         echo "system wine"
     elif [ "${wine_flavor}" = "pol" ]; then
         pol_filename="PlayOnLinux-wine-${wine_version}-linux-x86.pol"
@@ -257,8 +242,20 @@ install()
         if [ ! -e "${wine_base}" ]; then
             tar -C "${takp_prefix}"/ -xf "${pol_file}" wineversion/
         fi
+    elif [ "${wine_flavor}" = "eggroll" ]; then
+        eggroll_filename="wine-lutris-GE-Proton${eggroll_version}-x86_64.tar.xz"
+        eggroll_url="https://github.com/GloriousEggroll/wine-ge-custom/releases/download/GE-Proton${eggroll_version}/${eggroll_filename}"
+        eggroll_file="${cache_base}/${eggroll_filename}"
+        if [ ! -e "${eggroll_file}" ]; then
+            curl -L "${eggroll_url}" -o "${eggroll_file}"
+        fi
+
+        if [ ! -e "${wine_base}" ]; then
+            tar -C "${takp_prefix}" -xf ${eggroll_file} wineversion/
+        fi
     fi
 
+    # TODO: Switch to the v2.1 client
     if [ ! -e "${takp_dir}/eqgame.exe" ]; then
         filename="${cache_base}/TAKP.zip"
         if [ ! -e "${filename}" ]; then
@@ -266,15 +263,6 @@ install()
         fi
         unzip -d "${drive_e}" "${filename}"
     fi
-
-#    if [ $(sha1sum "${takp_dir}/eqgame.dll" | awk '{print $1}') != "e06d07cf1f21922caf31b19eef220655e8e76256" ]; then
-#        filename="${cache_base}/freethemouse.zip"
-#        if [ ! -e "$filename" ]; then
-#            curl -L -o "$filename" 'https://www.dropbox.com/s/zbha7dxydsr92w0/eqgame_dll%20v3.5.3%20for%20ftm.zip?dl=0'
-#        fi
-#        mv "${takp_dir}"/eqgame.dll{,.dist}
-#        unzip -d "${takp_dir}" "${filename}" "eqgame.dll"
-#    fi
 
     if [ ! -e ${wine_prefix}/system.reg ]; then
         "${wine_bin}" wineboot -u ||:
@@ -288,7 +276,6 @@ install()
         install_dgVoodoo
     fi
 
-    # TODO: Deprecated in favor of winetricks
     if [ ! -e ${takp_dir}/d3d11.dll ]; then
         install_dxvk
     fi
