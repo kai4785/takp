@@ -1,62 +1,13 @@
 #include "takpw.h"
+#include "globals.h"
+#include "log.h"
 
 #include <stdio.h>
 #include <string.h>
 
+#include <winuser.h>
+
 HMODULE g_d3d8 = NULL;
-
-#if 1
-#define log(fmt, ...) printf("KAIKAIKAI " fmt, __VA_ARGS__)
-#else
-#define log(fmt, ...)
-#endif
-
-BOOL WINAPI DllMain(
-    HINSTANCE hinstDLL,  // handle to DLL module
-    DWORD fdwReason,     // reason for calling function
-    LPVOID lpvReserved )  // reserved
-{
-    // Perform actions based on the reason for calling.
-    const char* libname;
-    switch( fdwReason )
-    {
-        case DLL_PROCESS_ATTACH:
-            // Initialize once for each new process.
-            // Return FALSE to fail DLL load.
-            libname = "d3d8-dxvk.dll";
-            g_d3d8 = LoadLibrary(libname);
-            if (!g_d3d8)
-            {
-                libname = "C:\\Windows\\System32\\d3d8.dll";
-                g_d3d8 = LoadLibrary(libname);
-            }
-            log("Loaded %s\n", libname);
-
-            break;
-
-        case DLL_THREAD_ATTACH:
-            // Do thread-specific initialization.
-            break;
-
-        case DLL_THREAD_DETACH:
-            // Do thread-specific cleanup.
-            break;
-
-        case DLL_PROCESS_DETACH:
-
-            if (lpvReserved != NULL)
-            {
-                break; // do not do cleanup if process termination scenario
-            }
-
-            FreeLibrary(g_d3d8);
-
-            // Perform any necessary cleanup.
-            break;
-    }
-
-    return TRUE;  // Successful DLL_PROCESS_ATTACH.
-}
 
 class TAKPIDirect3D8;
 
@@ -117,8 +68,11 @@ public:
         log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__);
         HRESULT result = D3D_OK;
         result = m_d3d8dev->GetDirect3D(ppD3D8);
-        *ppD3D8 = m_d3d8;
-        log("    %p, %p, %s () = %p\n", this, m_d3d8dev, __FUNCTION__, *ppD3D8);
+        if (result == D3D_OK)
+        {
+            *ppD3D8 = m_d3d8;
+            log("    %p, %p, %s () = %p\n", this, m_d3d8dev, __FUNCTION__, *ppD3D8);
+        }
         return result;
     }
 
@@ -172,7 +126,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE Present(CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion) override
     {
-        log("%p, %p, %s (%p, %p, %p, %p)\n", this, m_d3d8dev, __FUNCTION__, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+        //log("%p, %p, %s (%p, %p, %p, %p)\n", this, m_d3d8dev, __FUNCTION__, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
         return m_d3d8dev->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
     }
 
@@ -190,7 +144,7 @@ public:
 
     void STDMETHODCALLTYPE SetGammaRamp(DWORD Flags, CONST D3DGAMMARAMP* pRamp) override
     {
-        log("%p, %p, %s\n", this, m_d3d8dev, __FUNCTION__);
+        log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__, pRamp);
         return m_d3d8dev->SetGammaRamp(Flags, pRamp);
     }
 
@@ -202,7 +156,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE CreateTexture(UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DTexture8** ppTexture) override
     {
-        log("%p, %p, %s (%d, %d, %d, %d, %d, %d, %p)\n", this, m_d3d8dev, __FUNCTION__, Width, Height, Levels, Usage, Format, Pool, ppTexture);
+        //log("%p, %p, %s (%d, %d, %d, %d, %d, %d, %p)\n", this, m_d3d8dev, __FUNCTION__, Width, Height, Levels, Usage, Format, Pool, ppTexture);
         return m_d3d8dev->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture);
     }
 
@@ -286,25 +240,25 @@ public:
 
     HRESULT STDMETHODCALLTYPE BeginScene() override
     {
-        log("%p, %p, %s ()\n", this, m_d3d8dev, __FUNCTION__);
+        //log("%p, %p, %s ()\n", this, m_d3d8dev, __FUNCTION__);
         return m_d3d8dev->BeginScene();
     }
 
     HRESULT STDMETHODCALLTYPE EndScene() override
     {
-        log("%p, %p, %s ()\n", this, m_d3d8dev, __FUNCTION__);
+        //log("%p, %p, %s ()\n", this, m_d3d8dev, __FUNCTION__);
         return m_d3d8dev->EndScene();
     }
 
     HRESULT STDMETHODCALLTYPE Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil) override
     {
-        log("%p, %p, %s (%d, %p, %d, %d, %5.2f, %d)\n", this, m_d3d8dev, __FUNCTION__, Count, pRects, Flags, Color, Z, Stencil);
+        //log("%p, %p, %s (%d, %p, %d, %d, %5.2f, %d)\n", this, m_d3d8dev, __FUNCTION__, Count, pRects, Flags, Color, Z, Stencil);
         return m_d3d8dev->Clear(Count, pRects, Flags, Color, Z, Stencil);
     }
 
     HRESULT STDMETHODCALLTYPE SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) override
     {
-        log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, State, pMatrix);
+        //log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, State, pMatrix);
         return m_d3d8dev->SetTransform(State, pMatrix);
     }
 
@@ -322,13 +276,13 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetViewport(CONST D3DVIEWPORT8* pViewport) override
     {
-        log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__, pViewport);
+        //log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__, pViewport);
         return m_d3d8dev->SetViewport(pViewport);
     }
 
     HRESULT STDMETHODCALLTYPE GetViewport(D3DVIEWPORT8* pViewport) override
     {
-        log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__, pViewport);
+        //log("%p, %p, %s (%p)\n", this, m_d3d8dev, __FUNCTION__, pViewport);
         return m_d3d8dev->GetViewport(pViewport);
     }
 
@@ -382,13 +336,13 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) override
     {
-        log("%p, %p, %s (%d, %d)\n", this, m_d3d8dev, __FUNCTION__, State, Value);
+        //log("%p, %p, %s (%d, %d)\n", this, m_d3d8dev, __FUNCTION__, State, Value);
         return m_d3d8dev->SetRenderState(State, Value);
     }
 
     HRESULT STDMETHODCALLTYPE GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue) override
     {
-        log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, State, pValue);
+        //log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, State, pValue);
         return m_d3d8dev->GetRenderState(State, pValue);
     }
 
@@ -448,7 +402,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetTexture(DWORD Stage, IDirect3DBaseTexture8* pTexture) override
     {
-        log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, Stage, pTexture);
+        //log("%p, %p, %s (%d, %p)\n", this, m_d3d8dev, __FUNCTION__, Stage, pTexture);
         return m_d3d8dev->SetTexture(Stage, pTexture);
     }
 
@@ -460,7 +414,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value) override
     {
-        log("%p, %p, %s (%d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, Stage, Type, Value);
+        //log("%p, %p, %s (%d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, Stage, Type, Value);
         return m_d3d8dev->SetTextureStageState(Stage, Type, Value);
     }
 
@@ -502,19 +456,19 @@ public:
 
     HRESULT STDMETHODCALLTYPE DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount) override
     {
-        log("%p, %p, %s (%d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, StartVertex, PrimitiveCount);
+        //log("%p, %p, %s (%d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, StartVertex, PrimitiveCount);
         return m_d3d8dev->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
     }
 
     HRESULT STDMETHODCALLTYPE DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT startIndex, UINT primCount) override
     {
-        log("%p, %p, %s (%d, %d, %d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, MinIndex, NumVertices, startIndex, primCount);
+        //log("%p, %p, %s (%d, %d, %d, %d, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, MinIndex, NumVertices, startIndex, primCount);
         return m_d3d8dev->DrawIndexedPrimitive(PrimitiveType, MinIndex, NumVertices, startIndex, primCount);
     }
 
     HRESULT STDMETHODCALLTYPE DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride) override
     {
-        log("%p, %p, %s (%d, %d, %p, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+        //log("%p, %p, %s (%d, %d, %p, %d)\n", this, m_d3d8dev, __FUNCTION__, PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
         return m_d3d8dev->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
     }
 
@@ -538,7 +492,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetVertexShader(DWORD Handle) override
     {
-        log("%p, %p, %s (%d)\n", this, m_d3d8dev, __FUNCTION__, Handle);
+        //log("%p, %p, %s (%d)\n", this, m_d3d8dev, __FUNCTION__, Handle);
         return m_d3d8dev->SetVertexShader(Handle);
     }
 
@@ -580,7 +534,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer8* pStreamData, UINT Stride) override
     {
-        log("%p, %p, %s (%d, %p, %d)\n", this, m_d3d8dev, __FUNCTION__, StreamNumber, pStreamData, Stride);
+        //log("%p, %p, %s (%d, %p, %d)\n", this, m_d3d8dev, __FUNCTION__, StreamNumber, pStreamData, Stride);
         return m_d3d8dev->SetStreamSource(StreamNumber, pStreamData, Stride);
     }
 
@@ -592,7 +546,7 @@ public:
 
     HRESULT STDMETHODCALLTYPE SetIndices(IDirect3DIndexBuffer8* pIndexData, UINT BaseVertexIndex) override
     {
-        log("%p, %p, %s (%p, %d)\n", this, m_d3d8dev, __FUNCTION__, pIndexData, BaseVertexIndex);
+        //log("%p, %p, %s (%p, %d)\n", this, m_d3d8dev, __FUNCTION__, pIndexData, BaseVertexIndex);
         return m_d3d8dev->SetIndices(pIndexData, BaseVertexIndex);
     }
 
@@ -672,12 +626,18 @@ private:
 class TAKPIDirect3D8 : public IDirect3D8
 {
 public:
-    TAKPIDirect3D8(IDirect3D8* d3d8) : m_d3d8(d3d8)
+    TAKPIDirect3D8(IDirect3D8* d3d8) : m_d3d8(d3d8), m_window(nullptr)
     {
         log("%p, %p, %s\n", this, m_d3d8, __FUNCTION__);
     }
 
-    virtual ~TAKPIDirect3D8() {}
+    virtual ~TAKPIDirect3D8()
+    {
+        if (m_window)
+        {
+            DestroyWindow(m_window);
+        }
+    }
 
     // IUnknown
     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObj) override
@@ -731,7 +691,7 @@ public:
 
     virtual HRESULT STDMETHODCALLTYPE EnumAdapterModes(UINT Adapter, UINT Mode, D3DDISPLAYMODE* pMode) override
     {
-        log("%p, %p, %s (%d, %d, %p)\n", this, m_d3d8, __FUNCTION__);
+        //log("%p, %p, %s (%d, %d, %p)\n", this, m_d3d8, __FUNCTION__);
         return m_d3d8->EnumAdapterModes(Adapter, Mode, pMode);
     }
 
@@ -749,7 +709,7 @@ public:
 
     virtual HRESULT STDMETHODCALLTYPE CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat) override
     {
-        log("%p, %p, %s (%u, %d, %d, %d, %d, %d)\n", this, m_d3d8, __FUNCTION__, Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
+        //log("%p, %p, %s (%u, %d, %d, %d, %d, %d)\n", this, m_d3d8, __FUNCTION__, Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
         return m_d3d8->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
     }
 
@@ -780,6 +740,11 @@ public:
     virtual HRESULT STDMETHODCALLTYPE CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice8** ppReturnedDeviceInterface) override
     {
         log("%p, %p, %s (%d, %d, %p, %d, %p, %p)\n", this, m_d3d8, __FUNCTION__, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+        log("    PresentationParameters: %u %u %d %u %d %d %p (%d) %d %d %d (%d %d)\n",
+            pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight, pPresentationParameters->BackBufferFormat, pPresentationParameters->BackBufferCount,
+            pPresentationParameters->MultiSampleType, pPresentationParameters->SwapEffect, pPresentationParameters->hDeviceWindow, pPresentationParameters->Windowed,
+            pPresentationParameters->EnableAutoDepthStencil, pPresentationParameters->AutoDepthStencilFormat, pPresentationParameters->Flags,
+            pPresentationParameters->FullScreen_RefreshRateInHz, pPresentationParameters->FullScreen_PresentationInterval);
         IDirect3DDevice8* newDevice;
         auto result = m_d3d8->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &newDevice);
         *ppReturnedDeviceInterface = new TAKPIDirect3DDevice8(this, newDevice);
@@ -790,6 +755,8 @@ public:
 
 private:
     IDirect3D8* m_d3d8;
+    HWND m_window;
+    WINDOWINFO m_windowInfo;
 };
 
 // Intercept the one function call
