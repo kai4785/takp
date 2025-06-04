@@ -11,6 +11,8 @@ set(launcher_SOURCES
     context.h
     display.cpp
     display.h
+    timestamp.cpp
+    timestamp.h
     main.cpp
     window.cpp
     window.h
@@ -18,3 +20,6 @@ set(launcher_SOURCES
 
 add_executable(takp_launcher ${launcher_SOURCES})
 target_link_libraries(takp_launcher X11 Threads::Threads)
+
+add_executable(takp_overlay overlay.cpp)
+target_link_libraries(takp_overlay X11 Threads::Threads)

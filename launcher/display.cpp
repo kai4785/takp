@@ -1,5 +1,6 @@
 #include "window.h"
 #include "display.h"
+#include "timestamp.h"
 
 #include <memory>
 #include <iostream>
@@ -32,7 +33,7 @@ Window XDisplay::root() const
 
 std::optional<XWindow> XDisplay::findWindow(const std::string windowName) const
 {
-    std::cout << "  Finding window with name: " << windowName << std::endl;
+    std::cout << timestamp() << "   Finding window with name: " << windowName << std::endl;
     Atom actualType;
     int format;
     unsigned long numItems, bytesAfter;
@@ -64,7 +65,7 @@ std::optional<XWindow> XDisplay::findWindow(const std::string windowName) const
             if(window.name() == windowName)
             {
                 XSelectInput(m_display, window.window(), FocusChangeMask | SubstructureNotifyMask | StructureNotifyMask);
-                std::cout << "  Found window with name: " << windowName << " (" << windows[i] << ")" << std::endl;
+                std::cout << timestamp() << "   Found window with name: " << windowName << " (" << windows[i] << ")" << std::endl;
                 return window;
                 break;
             }

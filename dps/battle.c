@@ -453,6 +453,8 @@ void Battle_report(struct Battle* this)
     struct SimpleString date = { .data = datebuf, .length = sizeof(datebuf) };
     struct Config* config = configInstance();
     int64_t battleSeconds = this->m_end - this->m_start;
+    if (battleSeconds < config->keepAlive)
+        return;
     if(battleSeconds == 0)
         battleSeconds = 1;
     printf("===============  Battle report! %6"PRId64"s [", battleSeconds);

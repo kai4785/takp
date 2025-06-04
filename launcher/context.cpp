@@ -1,4 +1,5 @@
 #include "context.h"
+#include "timestamp.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -47,6 +48,7 @@ Context::Context()
     : m_display()
     , m_running(true)
 {
+    cout << std::fixed << std::setprecision(5);
     m_autofire.running.store(false);
 }
 
@@ -173,7 +175,7 @@ void Context::dummy_keypress()
 
 void Context::cancel_thread()
 {
-    cout << "Watcher started" << endl;
+    cout << timestamp() << " Watcher started" << endl;
     auto barrier_future = m_cancel_barrier.get_future();
     barrier_future.wait();
     cout << "Watcher done waiting" << endl;
@@ -292,29 +294,31 @@ void Context::kb_event_thread()
             switch(ev.type)
             {
                 case KeyPress:
-                    cout << "KeyPress: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
+                    cout << timestamp() << " KeyPress: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
                     //XUngrabKeyboard(m_display, ev.xkey.time);
                     keyPress(ev.xkey.keycode, ev.xkey.state, ev.xkey.time);
                     //XFlush(m_display);
                     break;
                 case KeyRelease:
                 {
-                    cout << "KeyRelease: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
+                    cout << timestamp() << " KeyRelease: " << ev.xkey.keycode << ":" << ev.xkey.state << endl;
                     //XUngrabKeyboard(m_display, ev.xkey.time);
                     keyRelease(ev.xkey.keycode, ev.xkey.state, ev.xkey.time);
                     //XFlush(m_display);
                 }
                 case FocusIn:
                 {
-                    cout << "Focus in: " << ev.xfocus.window << endl;
-                    //auto client = client_from_window(ev.xfocus.window);
-                    //if(client)
-                        //cout << "  Focus In! " << client->name << endl;
+                    cout << timestamp() << " Focus in: " << ev.xfocus.window << endl;
+                    auto client = client_from_window(ev.xfocus.window);
+                    if(client)
+                        cout << timestamp() << "  Has focus: " << client->window->hasInputFocus() << endl;
+                    if (ev.xfocus.window != 481)
+                        cout << endl;
                     break;
                 }
                 case FocusOut:
                 {
-                    cout << "Focus out: " << ev.xfocus.window << endl;
+                    cout << timestamp() << " Focus out: " << ev.xfocus.window << endl;
                     auto client = client_from_window(ev.xfocus.window);
                     if(client && client->autofire && !client->window->hasInputFocus())
                     {
@@ -327,7 +331,7 @@ void Context::kb_event_thread()
                         XGetInputFocus(m_display, &focusedWindow, &focus_state);
                         XWindow newWindow(m_display, focusedWindow);
                         if(newWindow != client->window->window())
-                            cout << " Focus switched from client: '" << client->name << "' to window: '" << newWindow.name() << "'" << endl;
+                            cout << timestamp() << "  Focus switched from client: '" << client->name << "' to window: '" << newWindow.name() << "'" << endl;
                     }
                     break;
                 }
@@ -342,7 +346,7 @@ void Context::kb_event_thread()
                     // Ignored
                     break;
                 default:
-                    cout << "  Something else: " << ev.type << endl;
+                    cout << timestamp() << "   Something else: " << ev.type << endl;
                     break;
             }
         }
@@ -469,7 +473,7 @@ void Context::keyPress(int keycode, int state, Time time)
 
 		if(!client->window->isActive())
         {
-            cout << "  Raising client: '" << client->name << "' (" << client->window->window() << ")" << endl;
+            cout << timestamp() << "   Raising client: '" << client->name << "' (" << client->window->window() << ")" << endl;
 			client->window->raise(time);
         }
         else
@@ -499,13 +503,13 @@ void Context::keyRelease(int keycode, int state, Time time)
         return;
 
     if(client->window)
-        cout << " KeyRelease refreshing Window: " << client->name << " (" << client->window->window() << ")" << endl;
+        cout << timestamp() << "  KeyRelease refreshing Window: " << client->name << " (" << client->window->window() << ")" << endl;
     else
-        cout << " KeyRelease refreshing Window: " << client->name << " (NONE)" << endl;
+        cout << timestamp() << "  KeyRelease refreshing Window: " << client->name << " (NONE)" << endl;
     client->window = m_display.findWindow(client->name);
     if(client->window)
     {
-        cout << " KeyRelease refreshed Window: " << client->name << " (" << client->window->window() << ")" << endl;
+        cout << timestamp() << "  KeyRelease refreshed Window: " << client->name << " (" << client->window->window() << ")" << endl;
         XSelectInput(m_display, client->window->window(), FocusChangeMask | SubstructureNotifyMask);
     }
 }
@@ -520,7 +524,7 @@ void Context::cancel()
     if(m_running.exchange(false))
     {
         const char nl = '\n';
-        write(m_inotify_pipe[1], &nl, 1);
+        (void)!write(m_inotify_pipe[1], &nl, 1);
         stop_autofire(true);
         m_cancel_barrier.set_value();
     }
@@ -661,7 +665,7 @@ void Context::parse_config()
             }
         }
     }
-    string prefix = "takp-";
+    string prefix = "_takp-";
     for(int i = 0; i < active_accounts.size() && i < 3; i++)
     {
         string windowName = prefix + active_accounts[i];

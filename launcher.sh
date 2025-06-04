@@ -80,7 +80,7 @@ takp_prefix="$HOME/.takp"
 
 # Use GloriousEggroll's custom proton build
 # https://github.com/GloriousEggroll/wine-ge-custom/releases
-eggroll_version="8-8"
+eggroll_version="8-26"
 wine_flavor="eggroll"
 wine_version="lutris-GE-Proton${eggroll_version}-x86_64"
 
@@ -148,6 +148,7 @@ fi
 wine_bin="${wine_base}/bin/wine"
 wineserver_bin="${wine_base}/bin/wineserver"
 winecfg_bin="${wine_base}/bin/winecfg"
+winedbg_bin="${wine_base}/bin/winedbg"
 
 cache_base="${takp_prefix}/cache"
 log_base="${takp_prefix}/logs"
@@ -165,58 +166,138 @@ gs_key_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
 export WINEARCH=win32
 export WINEPREFIX="${wine_prefix}"
 export WINE="${wine_bin}"
+#export WINEDEBUG=+mouse
 #export WINEDEBUG=+relay,+seh,+tid,+d3d,+swapchain,+loaddll,+d3d9
 #export WINEDEBUG="+wgl"
 #export WINEDEBUG=+timestamp,+loaddll,+relay,+seh,+tid
 #export WINEDEBUG=+timestamp,+loaddll,+d3d
-#export WINEDEBUG=+timestamp,+loaddll
+#export WINEDEBUG=+relay,-d3d
+#export WINEDEBUG=+loaddll
 #export WINEDEBUG=all
+#export WINEDEBUG=+relay
+#export WINEDEBUG=+timestamp,+win
+#export STAGING_RT_PRIORITY_SERVER=0
+#export WINE_TIMERSYNC=0
+#export WINE_CPU_TOPOLOGY=4:4:1
+#export WINEESYNC=1
+#export WINEFSYNC=1
+#export PROTON_NO_ESYNC=1
+#export PROTON_NO_FSYNC=1
+# Force X-style mouse
+#WINE_FULLSCREEN_FSR=1
+#WINE_VK_USE_FSR=1
+#XDG_SESSION_TYPE=x11
 
 # You can force wine to ignore installing mono on first run, which doesn't seem to be used by the TAKP client, and it is helpful to test out a fresh wine prefix
 #export WINEDLLOVERRIDES="mscoree,mshtml="
 
 # With dxvk, you can see fps
-export DXVK_HUD=fps
+#export DXVK_HUD=fps
+#export DXVK_HUD=fps,frametimes,gpuload,version,api
 #export DXVK_HUD=full
 #export DXVK_FILTER_DEVICE_NAME="NVIDIA GeForce RTX 2060"
+#DXVK_FRAME_RATE=60
+
+add_override()
+{
+    dll=$1
+    local override="native,builtin"
+    if [ -n "$2" ]; then
+        override=$2
+    fi
+    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v $dll /d $override /f >/dev/null 2>&1
+}
+
+del_override()
+{
+    dll=$1
+    ${wine_bin} reg delete 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v $dll /f >/dev/null 2>&1
+}
 
 install_dgVoodoo()
 {
-    #zipname="dgVoodoo2_75.zip"
-    #zipname="dgVoodoo2_79_3.zip"
-    zipname="dgVoodoo2_8.zip"
-    filename="${cache_base}/${zipname}"
-    if [ ! -e "$filename" ]; then
-        echo "Downloading $zipname"
-        curl -q -s -L -o "$filename" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
+    local version="2_8"
+    local zipname="dgVoodoo${version}.zip"
+    local filename="${cache_base}/${zipname}"
+    local dirname="${cache_base}/dgVoodoo${version}"
+    if [ !-e "${dirname}" ]; then
+        if [ ! -e "$filename" ]; then
+            echo "Downloading ${zipname}"
+            curl -q -s -L -o "${filename}" "http://dege.freeweb.hu/dgVoodoo2/bin/${zipname}"
+        fi
+        mkdir -p "${dirname}"
+        unzip -d "${dirname}" "${filename}"
     fi
-    unzip -d "${takp_dir}" "${filename}" "MS/x86*"
-    mv ${takp_dir}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
-    mv ${takp_dir}/MS/x86/D3D9.dll ${takp_dir}/d3d9.dll
-    rm -fr MS
-    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d8 /d native /f >/dev/null 2>&1
-    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d9 /d native /f >/dev/null 2>&1
+    mv ${dirname}/MS/x86/D3D8.dll ${takp_dir}/d3d8.dll
+    #add_override d3d8
+}
+
+uninstall_dll()
+{
+    local dll=$1
+    rm ${takp_dir}/$dll.dll
+    del_override $dll
 }
 
 install_dxvk()
 {
-    # TODO: libvulkan 1.2 does not support dxvk 2.0+.
-    ver="1.10.3"
-    #ver="2.0"
+    ver="2.5"
+    if [ -n "$1" ]; then
+        ver="$1"
+    fi
     tarname="dxvk-${ver}.tar.gz"
     filename="${cache_base}/${tarname}"
-    if [ ! -e "$filename" ]; then
-        curl -L -o "$filename" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
+    dirname="${cache_base}/dxvk-${ver}"
+    if [ -n "$2" ]; then
+        dlls=$@
+    else
+        dlls=("d3d8" "d3d9")
+        #dlls=("d3d11" "dxgi")
     fi
-    tar -C "${takp_dir}" -xf "${filename}" "dxvk-${ver}/x32"
-    if [ -e ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ]; then
-        mv ${takp_dir}/dxvk-${ver}/x32/d3d10.dll ${takp_dir}/d3d10.dll
-        ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d10 /d native /f >/dev/null 2>&1
+    if [ ! -e "${dirname}" ]; then
+        if [ ! -e "$filename" ]; then
+            curl -L -o "${filename}" "https://github.com/doitsujin/dxvk/releases/download/v${ver}/${tarname}"
+        fi
+        tar -C "${cache_base}" -xf "${filename}"
     fi
-    mv ${takp_dir}/dxvk-${ver}/x32/d3d11.dll ${takp_dir}/d3d11.dll
-    ${wine_bin} reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v d3d11 /d native /f >/dev/null 2>&1
+    for dll in ${dlls[@]}; do
+        ln -f ${dirname}/x32/$dll.dll ${takp_dir}
+        #add_override $dll
+    done
+}
 
-    rm -fr dxvk-${ver}
+install_eqgame_dll()
+{
+    variant=$1
+    version="v3.5.3.2c"
+    if [ -n "$2" ]; then
+        version=$2
+    fi
+    filename="${cache_base}/eqgame_dll-${version}-for-${variant}.zip"
+    dirname="${cache_base}/eqgame_dll-${version}-for-${variant}"
+
+    if [ ! -e "${filename}" ]; then
+        echo "TODO: Download eqgame for eqw"
+        exit 1
+    fi
+    if [ ! -e "${dirname}" ]; then
+        mkdir -p "${dirname}"
+        unzip -d "${dirname}" "${filename}"
+    fi
+    for file in ${dirname}/*; do
+        ln -f "${file}" "${takp_dir}"
+    done
+}
+
+install_eqw()
+{
+    install_eqgame_dll eqw
+}
+
+install_ftm()
+{
+    install_eqgame_dll ftm
+    rm -f ${takp_dir}/eqw.exe
 }
 
 install()
@@ -273,19 +354,29 @@ install()
         ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
     fi
 
-    if [ ! -e ${takp_dir}/d3d8.dll ]; then
-        install_dgVoodoo
-    fi
+    install_dgVoodoo
 
-    if [ ! -e ${takp_dir}/d3d11.dll ]; then
-        install_dxvk
-    fi
+    install_dxvk
+
+    install_eqgame_dll ftm
 }
 
 disable_dgVoodoo_watermark()
 {
     echo "[DirectX]" > "${takp_dir}"/dgVoodoo.conf
     echo "dgVoodooWatermark = false" >> "${takp_dir}"/dgVoodoo.conf
+}
+
+debug()
+{
+    # Attach with:
+    # gdb /home/kai/.takp/drive_e/TAKP/eqgame.exe -ex "set disassemble-next-line on" -ex "target remote localhost:12345" -ex "break eqgame.cpp:1520"
+    account=$1
+    pass=$(account_password $account)
+    mkdir -p "${log_dir}"
+    cd "${takp_dir}"
+    "${winedbg_bin}" --gdb --no-start --port 12345 eqgame.exe patchme "/ticket:$account/$pass"
+    #"${wine_bin}" Z:/usr/share/win32/gdbserver.exe localhost:12345 eqgame.exe patchme
 }
 
 play()
@@ -295,6 +386,13 @@ play()
     "${wine_bin}" eqgame.exe patchme >"${log_dir}"/wine.log 2>&1
 }
 
+eqw()
+{
+    mkdir -p "${log_dir}"
+    cd "${takp_dir}"
+    "${wine_bin}" eqw.exe >"${log_dir}"/wine.log 2>&1
+}
+
 run()
 {
     account=$1
@@ -302,7 +400,9 @@ run()
     dir="${takp_dir}$(account_suffix $account)"
     mkdir -p "${log_dir}"
     cd "${dir}"
-    "${wine_bin}" eqgame.exe patchme "/title:takp-${account}_login" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
+    "${wine_bin}" eqgame.exe patchme "/title:_takp-${account}" "/ticket:$account/$pass" >"${log_dir}"/wine-${account}.log 2>&1 &
+    #"${wine_bin}" eqw.exe >"${log_dir}"/wine-${account}.log 2>&1 &
+    #"${wine_bin}" explorer /desktop=EQ,1920x1080 eqgame.exe patchme >"${log_dir}"/wine-${account}.log 2>&1 &
     set_client_pid ${account} $!
 }
 
@@ -356,10 +456,10 @@ client_pid()
 
 collect_window_info()
 {
-    windows=$(xdotool search --name takp- ||:)
+    windows=$(xdotool search --name _takp- ||:)
     for window in $windows; do
         windowname=$(xdotool getwindowname $window);
-        client=${windowname/takp-/}
+        client=${windowname/_takp-/}
         pid=$(xdotool getwindowpid $window)
 
         set_client_window ${client} $window
@@ -432,7 +532,7 @@ launch()
             run $account
             sleep 1
         else
-            echo Client "[ takp-${account} : $client ]" already running.
+            echo Client "[ _takp-${account} : $client ]" already running.
         fi
     done
 }
@@ -440,27 +540,26 @@ launch()
 rename_window()
 {
     echo "Renaming window $1 -> $2"
+    echo xdotool search --name "$1" set_window --name "$2"
     xdotool search --name "$1" set_window --name "$2"
 }
 
 swap_window_name()
 {
-    rename_window $1 takp-SWAP
+    rename_window $1 _takp-SWAP
     rename_window $2 $1
-    rename_window takp-SWAP $1
+    rename_window _takp-SWAP $1
 }
 
 login()
 {
     for account in $(accounts $@); do
         pass=$(account_password ${account})
-        client=$(client ${account}_login)
+        client=$(client ${account})
         if [ -n "$client" ]; then
             echo "Activating window"
             xdotool windowactivate ${client}
-            sleep .5
-            rename_window takp-${account}_login takp-${account}
-            sleep .5
+            sleep 1
             xdotool key Return
             sleep 1
         fi
@@ -486,7 +585,7 @@ startup()
         start_midi
     fi
     launch $@
-    sleep 8
+    sleep 10
     collect_window_info
     login $@
 }
@@ -550,15 +649,6 @@ camp()
         fi
     done
     sleep 35
-    for account in $(accounts $@); do
-        client=$(client ${account})
-        if [ -n "$client" ]; then
-            xdotool windowactivate ${client}
-            sleep 1
-            xdotool key Escape
-        fi
-    done
-    sleep 5
     close $@
 }
 
@@ -579,14 +669,14 @@ activate()
 {
     index=$((${1} - 1))
     account=${accounts[${index}]}
-    client=$(xdotool search --name takp-${account})
+    client=$(xdotool search --name _takp-${account})
     currentWindow=$(xdotool getactivewindow)
     if [ "${client}" -eq "${currentWindow}" ]; then
         echo "Moving mouse"
         eval $(xdotool getwindowgeometry --shell $client)
         x_offset=$X
         xdotool mousemove $((1920 / 2 + x_offset )) $((1080/2))
-    elif ! wmctrl -a takp-${account}; then
+    elif ! wmctrl -a _takp-${account}; then
         echo "Couldn't find a window for ${account}" >&2
     fi
 }

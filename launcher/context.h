@@ -4,6 +4,7 @@
 #include "display.h"
 #include "window.h"
 
+#include <array>
 #include <vector>
 #include <future>
 #include <atomic>
