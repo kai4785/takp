@@ -78,11 +78,18 @@ takp_prefix="$HOME/.takp"
 #wine_flavor="system"
 #wine_version="$(wine --version | sed -r 's/wine-([0-9]).*/\1/')"
 
-# Use GloriousEggroll's custom proton build
+# Use GloriousEggroll's custom wine build
 # https://github.com/GloriousEggroll/wine-ge-custom/releases
-eggroll_version="8-26"
-wine_flavor="eggroll"
-wine_version="lutris-GE-Proton${eggroll_version}-x86_64"
+#eggroll_version="8-26"
+#wine_flavor="eggroll"
+#wine_version="lutris-GE-Proton${eggroll_version}-x86_64"
+
+# Use GloriousEggroll's custom proton build
+# https://github.com/GloriousEggroll/proton-ge-custom/releases
+ge_version="10-29"
+umu_version="1.3.0"
+wine_flavor="umu"
+wine_version="GE-Proton${ge_version}"
 
 # Always needed
 winetricks_verbs="dinput8"
@@ -129,23 +136,28 @@ done
 wine_tag="${wine_flavor}-${wine_version}"
 
 # Depends on parsed arguments
-if [ "${wine_flavor}" == "system" ]; then
-    wine_base=/usr
-fi
-
-if [ "${wine_flavor}" == "pol" ]; then
-    wine_base="${takp_prefix}/wineversion/${wine_version}"
-fi
-
-if [ "${wine_flavor}" == "eggroll" ]; then
-    wine_base="${takp_prefix}/wineversion/${wine_version}"
-fi
+case ${wine_flavor} in
+    "system")
+        wine_base=/usr
+        ;;
+    "pol"|"eggroll"|"umu")
+        wine_base="${takp_prefix}/wineversion/${wine_version}"
+        ;;
+    *)
+        echo "Unknown wine flavor: ${wine_flavor}" >&2
+        exit 1
+        ;;
+esac
 
 if [ -z "${wine_prefix}" ]; then
     wine_prefix="${takp_prefix}/wineprefix/${wine_tag}"
 fi
 
-wine_bin="${wine_base}/bin/wine"
+if [ "${wine_flavor}" = "umu" ]; then
+    wine_bin="${wine_base}/umu/umu-run"
+else
+    wine_bin="${wine_base}/bin/wine"
+fi
 wineserver_bin="${wine_base}/bin/wineserver"
 winecfg_bin="${wine_base}/bin/winecfg"
 winedbg_bin="${wine_base}/bin/winedbg"
@@ -197,6 +209,18 @@ export WINE="${wine_bin}"
 #export DXVK_HUD=full
 #export DXVK_FILTER_DEVICE_NAME="NVIDIA GeForce RTX 2060"
 #DXVK_FRAME_RATE=60
+#vkBasalt can apply many re-shade shaders
+#export ENABLE_VKBASALT=1
+
+# Extra umu/proton environtment variables
+if [ "${wine_flavor}" = "umu" ]; then
+    export PROTONPATH="${wine_base}"
+    export PROTON_VERB="run"
+    export XDG_DATA_HOME="${takp_prefix}/xdg/data"
+    export XDG_CACHE_HOME="${takp_prefix}/xdg/cache"
+    export XDG_STATE_HOME="${takp_prefix}/xdg/state"
+
+fi
 
 add_override()
 {
@@ -241,7 +265,7 @@ uninstall_dll()
 
 install_dxvk()
 {
-    ver="2.5"
+    ver="2.7.1"
     if [ -n "$1" ]; then
         ver="$1"
     fi
@@ -261,8 +285,11 @@ install_dxvk()
         tar -C "${cache_base}" -xf "${filename}"
     fi
     for dll in ${dlls[@]}; do
-        ln -f ${dirname}/x32/$dll.dll ${takp_dir}
+        cp -a ${dirname}/x32/$dll.dll ${takp_dir}
         #add_override $dll
+        if [ "$dll" = "d3d8" ]; then
+            upx ${takp_dir}/d3d8.dll
+        fi
     done
 }
 
@@ -300,43 +327,109 @@ install_ftm()
     rm -f ${takp_dir}/eqw.exe
 }
 
-install()
+install_takp_dlls()
 {
-    mkdir -p "${wine_prefix}"
-    # Some rudimentary caching
+    set -x
+    old_eqw_sha=4d850dac67c11bd3b72828cbed90cff3818be8025b877224edc93eea9d2cbdc7
+    cur_eqw_sha=$(sha256sum ${takp_dir}/eqw.dll | awk '{print $1}')
+    if [ "$cur_eqw_sha" = "$old_eqw_sha" ]; then
+        mv "${takp_dir}/eqw.dll" "${takp_dir}/eqw.dll.old"
+    fi
+    eqw_version="1.0.1"
+    eqw_cache_file="${cache_base}/eqw-${eqw_version}.dll"
+
+    if [ ! -e "${eqw_cache_file}" ]; then
+        curl -L https://github.com/CoastalRedwood/eqw_takp/releases/download/v${eqw_version}/eqw.dll -o "${eqw_cache_file}"
+    fi
+    cp ${eqw_cache_file} ${takp_dir}/eqw.dll
+
+
+    old_eqgame_sha=79942003830fc7e73c1c3f2a76fa884258c6e6d53280aad519cad136c850e3fc
+    cur_eqgame_sha=$(sha256sum ${takp_dir}/eqgame.dll | awk '{print $1}')
+    if [ "$cur_eqgame_sha" = "$old_eqgame_sha" ]; then
+        mv "${takp_dir}/eqgame.dll" "${takp_dir}/eqgame.dll.old"
+    fi
+    eqgame_version="0.0.0.3"
+    eqgame_cache_file="${cache_base}/eqgame-${eqgame_version}.dll"
+
+    if [ ! -e "${eqgame_cache_file}" ]; then
+        curl -L https://github.com/EQMacEmu/eqgame_dll_takp/releases/download/v${eqgame_version}/eqgame.dll -o "${eqgame_cache_file}"
+    
+    fi
+    cp ${eqgame_cache_file} ${takp_dir}/eqgame.dll
+}
+
+install_winetricks()
+{
     mkdir -p "${cache_base}"
     if [ ! -e "${winetricks_bin}" ]; then
         curl -L "${winetricks_url}" -o "${winetricks_bin}"
         chmod +x "${winetricks_bin}"
     fi
-    if [ "${wine_flavor}" = "system" ]; then
-        echo "system wine"
-    elif [ "${wine_flavor}" = "pol" ]; then
-        pol_filename="PlayOnLinux-wine-${wine_version}-linux-x86.pol"
-        pol_baseurl="https://www.playonlinux.com/wine/binaries/linux-x86"
-        pol_url="${pol_baseurl}/${pol_filename}"
-        pol_file="${cache_base}/${pol_filename}"
-        if [ ! -e "${pol_file}" ]; then
-            curl -L "${pol_url}" -o "${pol_file}"
-        fi
+}
 
-        if [ ! -e "${wine_base}" ]; then
-            tar -C "${takp_prefix}"/ -xf "${pol_file}" wineversion/
-        fi
-    elif [ "${wine_flavor}" = "eggroll" ]; then
-        eggroll_filename="wine-lutris-GE-Proton${eggroll_version}-x86_64.tar.xz"
-        eggroll_url="https://github.com/GloriousEggroll/wine-ge-custom/releases/download/GE-Proton${eggroll_version}/${eggroll_filename}"
-        eggroll_file="${cache_base}/${eggroll_filename}"
-        if [ ! -e "${eggroll_file}" ]; then
-            curl -L "${eggroll_url}" -o "${eggroll_file}"
-        fi
+install_wine()
+{
+    case "${wine_flavor}" in
+        "system")
+            echo "system wine"
+            ;;
+        "pol")
+            pol_filename="PlayOnLinux-wine-${wine_version}-linux-x86.pol"
+            pol_baseurl="https://www.playonlinux.com/wine/binaries/linux-x86"
+            pol_url="${pol_baseurl}/${pol_filename}"
+            pol_file="${cache_base}/${pol_filename}"
+            if [ ! -e "${pol_file}" ]; then
+                curl -L "${pol_url}" -o "${pol_file}"
+            fi
 
-        if [ ! -e "${wine_base}" ]; then
-            mkdir -p "${takp_prefix}"/wineversion
-            tar -C "${takp_prefix}"/wineversion -xf ${eggroll_file}
-        fi
-    fi
+            if [ ! -e "${wine_base}" ]; then
+                tar -C "${takp_prefix}"/ -xf "${pol_file}" wineversion/
+            fi
+            ;;
+        "eggroll")
+            eggroll_filename="wine-lutris-GE-Proton${eggroll_version}-x86_64.tar.xz"
+            eggroll_url="https://github.com/GloriousEggroll/wine-ge-custom/releases/download/GE-Proton${eggroll_version}/${eggroll_filename}"
+            eggroll_file="${cache_base}/${eggroll_filename}"
+            if [ ! -e "${eggroll_file}" ]; then
+                curl -L "${eggroll_url}" -o "${eggroll_file}"
+            fi
 
+            if [ ! -e "${wine_base}" ]; then
+                mkdir -p "${takp_prefix}"/wineversion
+                tar -C "${takp_prefix}"/wineversion -xf ${eggroll_file}
+            fi
+            ;;
+        "umu")
+            ge_proton_filename="GE-Proton${ge_version}.tar.gz"
+            ge_proton_url="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/GE-Proton${ge_version}/${ge_proton_filename}"
+            ge_proton_file="${cache_base}/${ge_proton_filename}"
+            if [ ! -e "${ge_proton_file}" ]; then
+                curl -L "${ge_proton_url}" -o "${ge_proton_file}"
+            fi
+
+            if [ ! -e "${wine_base}" ]; then
+                mkdir -p "${takp_prefix}"/wineversion
+                tar -C "${takp_prefix}"/wineversion -xf ${ge_proton_file}
+            fi
+
+            umu_filename="umu-launcher-${umu_version}-zipapp.tar"
+            umu_url="https://github.com/Open-Wine-Components/umu-launcher/releases/download/${umu_version}/${umu_filename}"
+            umu_file="${cache_base}/${umu_filename}"
+
+            if [ ! -e "${umu_file}" ]; then
+                curl -L "${umu_url}" -o "${umu_file}"
+            fi
+
+            if [ ! -e "${wine_base}/umu" ]; then
+                tar -C "${wine_base}" -xf ${umu_file}
+            fi
+            ;;
+    esac
+}
+
+install_TAKP()
+{
     # TODO: Switch to the v2.1 client
     if [ ! -e "${takp_dir}/eqgame.exe" ]; then
         filename="${cache_base}/TAKP.zip"
@@ -345,6 +438,15 @@ install()
         fi
         unzip -d "${drive_e}" "${filename}"
     fi
+}
+
+install()
+{
+    mkdir -p "${wine_prefix}"
+    # Some rudimentary caching
+    install_winetricks
+    install_wine
+    install_TAKP
 
     if [ ! -e ${wine_prefix}/system.reg ]; then
         "${wine_bin}" wineboot -u ||:
@@ -353,11 +455,8 @@ install()
         "${wineserver_bin}" -k -w ||:
         ln -sf "${drive_e}" "${wine_prefix}/dosdevices/e:"
     fi
-
-    install_dgVoodoo
-
+    #install_dgVoodoo
     install_dxvk
-
     install_eqgame_dll ftm
 }
 
