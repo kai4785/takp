@@ -82,7 +82,9 @@ log_base="${takp_prefix}/logs"
 log_dir="${log_base}/${wine_version}"
 drive_e="${takp_prefix}/drive_e"
 takp_dir="${drive_e}/TAKP"
+winetricks_bin=${wine_base}/protonfixes/winetricks
 
+export WINEPREFIX=${wine_prefix}
 # Required umu/proton environtment variables
 export PROTONPATH="${wine_base}"
 # "run" allows us to execute multiple applications in the same umu environment
@@ -200,6 +202,11 @@ winecfg()
     ${wine_bin} winecfg
 }
 
+winetricks()
+{
+    ${winetricks_bin} $@
+}
+
 add_override()
 {
     dll=$1
@@ -214,6 +221,12 @@ del_override()
 {
     dll=$1
     ${wine_bin} reg delete 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v $dll /f >/dev/null 2>&1
+}
+
+query_override()
+{
+    dll=$1
+    ${wine_bin} reg query 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v $dll
 }
 
 uninstall_dll()
